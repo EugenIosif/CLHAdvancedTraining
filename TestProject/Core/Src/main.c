@@ -36,24 +36,15 @@
 
 /* Private define ------------------------------------------------------------*/
 /* USER CODE BEGIN PD */
-#define KEY_SIZE 4
-#define MAX_DID_TABLE_SIZE 8
-#define CONFIG_BUFFER_SIZE 8
-#define DID_ENTRY_SIZE 16
-#define DID_ID_SIZE 2
-#define NACK false // Negative Response Code for UDS services
-#define NUMBER_OF_SERVICES 3
+
+#define MSGLEN 16
+
 /* USER CODE END PD */
 
 /* Private macro -------------------------------------------------------------*/
 /* USER CODE BEGIN PM */
 
-#define MODULOMULTIPLICATION (a,b,n) (safe_mult(a,b) % n)
 
-#define SIMPLEMULTIPLICATION(a, b, c) ({    c[i+j]+=a[i]*b[j]; \
-                                            c[i+j+1] += c[i+j]/10; \
-                                            c[i+j]%=10; \
-                                        })
 
 /* USER CODE END PM */
 
@@ -62,35 +53,11 @@
 COM_InitTypeDef BspCOMInit;
 __IO uint32_t BspButtonState = BUTTON_RELEASED;
 ADC_HandleTypeDef hadc1;
-
 HASH_HandleTypeDef hhash;
-
 SPI_HandleTypeDef hspi1;
+UART_HandleTypeDef huart1;
 
 /* USER CODE BEGIN PV */
-
-typedef bool (*UDSServiceHandler)(uint8_t *data, uint16_t len);
-typedef struct
-{
-    uint16_t did_id;
-    unsigned char data[DID_ENTRY_SIZE];
-    bool is_encrypted;
-} DiagnosticData;
-
-uint8_t stored_ecu_key[KEY_SIZE] = {0xDE, 0xAD, 0xBE, 0xEF};
-uint16_t did_ids_to_be_updated[4] = {0x1001, 0x1003, 0x1005, 0x1007};
-uint8_t key = 3; // Key for data encryption
-
-DiagnosticData did_table[MAX_DID_TABLE_SIZE] = {
-    {0x1001, "VIN123456789", false},
-    {0x1002, "FW_VER_1.0.0", false},
-    {0x1003, "HW_VER_A", false},
-    {0x1004, "PROD_DATE_2020", false},
-    {0x1005, "SUPPORT_24/7", false},
-    {0x1006, "WARRANTY_3YRS", false},
-    {0x1007, "RECALL_NONE", false},
-    {0x1008, "OWNER_JOHN", false}
-};
 
 /* USER CODE END PV */
 
@@ -104,251 +71,18 @@ static void MX_SPI1_Init(void);
 static void MX_ADC1_Init(void);
 /* USER CODE BEGIN PFP */
 
-bool verify_diagnostic_key(uint8_t *provided_key, uint16_t len);
-bool read_did_entry(uint8_t *data, uint16_t len);
-bool update_did_entry(uint8_t *raw_payload, uint16_t payload_len);
-
-void flipBits(uint8_t *data, size_t len);
-bool secure_compare(uint8_t *a, uint8_t *b, size_t len);
-uint64_t simple_rsa_encrypt(uint64_t message, uint64_t e, uint64_t n);
-
-uint16_t storeIntInInverseOrderArray(uint64_t number, uint8_t* array);
-uint64_t storeArrayInNumber(uint8_t* array, uint16_t size);
-uint64_t safe_mult(uint64_t a, uint64_t b);
-uint64_t safe_mult_mod(uint64_t a, uint64_t b, uint64_t n);
-HAL_StatusTypeDef ComputeSHA256FromMemory(uint32_t startAddress, uint32_t length, uint8_t *outputHash);
+void encryptMessage(char* msg, char key, int len);
 
 /* USER CODE END PFP */
 
 /* Private user code ---------------------------------------------------------*/
 /* USER CODE BEGIN 0 */
 
-HAL_StatusTypeDef ComputeSHA256FromMemory(uint32_t startAddress, uint32_t length, uint8_t *outputHash)
-{
-    HAL_StatusTypeDef status;
-    uint32_t currentAddress = startAddress;
-
-    status = HAL_HASHEx_SHA256_Start(&hhash, (uint8_t*)currentAddress, length, outputHash, HAL_MAX_DELAY);
-    status = HAL_HASHEx_SHA256_Accmlt(&hhash, (uint8_t*)currentAddress, length);
-
-    uint8_t outputHashnew[32]; // SHA-256 produces a 32-byte hash
-
-    memcpy(outputHashnew, outputHash, 32);
-
-    status = HAL_HASHEx_SHA256_Accmlt_End(&hhash, (uint8_t*)currentAddress, length,outputHash,HAL_MAX_DELAY);
-
-    // Copy the final hash result back to outputHashnew or outputHash
-    memcpy(outputHash, outputHashnew, 32);
-
-    return status;
+void encryptMessage(char* msg, char key, int len) {
+  for (int i = 0; i < len; i++) {
+    msg[i] ^= key;
+  }
 }
-
-
-UDSServiceHandler service_handlers[3] = {
-    (UDSServiceHandler)verify_diagnostic_key,
-    (UDSServiceHandler)read_did_entry,
-    (UDSServiceHandler)update_did_entry};
-
-inline void flipBits(uint8_t *data, size_t len)
-{
-    for (size_t i = 0; i < len; i++)
-    {
-        data[i] ^= 0xFF; // Flip all bits in the byte
-    }
-}
-
-inline void simpleMultuplication(uint8_t *arr1, uint8_t *arr2, uint8_t *ans, int i, int j) 
-{
-    ans[i+j] += arr1[i] * arr2[j];
-    ans[i+j+1] += ans[i+j]/10;
-    ans[i+j] %= 10;
-}
-
-uint16_t storeIntInInverseOrderArray(uint64_t number, uint8_t* array) {
-    uint16_t size = 0;
-    // printf("For number: %llu ", number);
-    while (number > 0) {
-        *(array + size) = number % 10; // Store the least significant digit first
-        number /= 10; // Remove the last digit
-        size++;
-    }
-    // printf("Size of array: %d\n", size);
-    return size; // Return the number of digits stored
-}
-
-uint64_t storeArrayInNumber(uint8_t* array, uint16_t size) {
-    uint64_t number = 0;
-    for (int i = size - 1; i >= 0; i--) {
-        number = number * 10;
-        number += *(array + i); // Reconstruct the number
-    }
-    return number;
-}
-
-uint64_t safe_mult(uint64_t a, uint64_t b)
-{
-    uint8_t arr1[20] = {0}, arr2[20] = {0}, ans[40] = {0};  // size of (arr1_size + arr2_size)
-
-    uint8_t size1 = 0 , size2 = 0;
-
-    size1 = storeIntInInverseOrderArray(a, &arr1[0]);
-    size2 = storeIntInInverseOrderArray(b, &arr2[0]);
-
-    for(int i=0;i<size1;i++)
-    {
-        for(int j=0;j<size2;j++)
-        {
-//            simpleMultuplication(&arr1[0], &arr2[0], &ans[0], i, j);
-             SIMPLEMULTIPLICATION(arr1, arr2, ans);
-        }
-    }
-
-    uint64_t product = 0;
-    product = storeArrayInNumber(&ans[0], size1+size2);
-    // printf("Product: %llu\n", product);
-
-    return product;
-}
-
-uint64_t safe_mult_mod(uint64_t a, uint64_t b, uint64_t n)
-{
-    return safe_mult(a, b) % n;
-}
-
-bool secure_compare(uint8_t *a, uint8_t *b, size_t len)
-{
-    uint8_t result = 0;
-    for (size_t i = 0; i < len; i++)
-    {
-        result |= (a[i] ^ b[i]); // XOR stays 0 if bytes match, becomes non-zero if they don't
-    }
-    return (result == 0); // Only checks the final accumulated result
-}
-
-
-uint64_t simple_rsa_encrypt(uint64_t message, uint64_t e, uint64_t n)
-{
-    uint64_t result = 1;
-    message = message % n;
-    while (e > 0) {
-        if (e % 2 == 1){
-            result = safe_mult_mod(result, message, n);
-        }
-        e = e >> 1;
-        message = safe_mult_mod(message, message, n);
-    }
-    return result;
-}
-
-uint64_t concatenateBitRepresentationIntoDecimal(char *str) {
-    uint64_t returnValue = 0;
-    for (int i = 0; str[i] != '\0'; i++) {
-        returnValue = (returnValue << 8) + (uint8_t)str[i];
-    }
-    return returnValue;
-}
-
-void stringFromEncryptedDecimal(uint64_t decimal, char *str, int size) {
-    int index = size - 1; // Start from the end of the string
-    while (decimal > 0 && index >= 0) {
-        str[index--] = (char)(decimal & 0xFF); // Get the last 8 bits
-        decimal >>= 8; // Shift right by 8 bits to get the next character
-    }
-    str[index] = '\0'; // Null-terminate the string
-}
-
-
-bool verify_diagnostic_key(uint8_t *provided_key, uint16_t len)
-{
-    if (len != KEY_SIZE)
-        return NACK;
-
-    bool returnValue = NACK;
-
-    for (int i = 0; i < KEY_SIZE; i++)
-    {
-        if (secure_compare(&provided_key[i], &stored_ecu_key[i], KEY_SIZE))
-        {
-            returnValue = true;
-        }
-    }
-    return returnValue;
-}
-
-// --- 2. OOB READ (UDS Service 0x22) ---
-// Vulnerable: Trusts the caller to have validated the index
-bool read_did_entry(uint8_t *data, uint16_t len)
-{
-    if ((len > DID_ID_SIZE) && (len <= DID_ENTRY_SIZE + DID_ID_SIZE))
-    {
-        static DiagnosticData entry;
-
-        memcpy(&entry.did_id, &data[0], sizeof(entry.did_id)); // Read the DID ID from the payload
-
-        if (entry.did_id >= did_table[0].did_id && entry.did_id <= MAX_DID_TABLE_SIZE + did_table[0].did_id)
-        {
-            for (int i = 0; i < MAX_DID_TABLE_SIZE; i++)
-            {
-                if (memcmp(&did_table[i].did_id, &entry.did_id, sizeof(entry.did_id)) == 0)
-                {
-                    memcpy(entry.data, did_table[i].data, DID_ENTRY_SIZE);
-                    break;
-                }
-            }
-        }
-        memcpy(data, &entry, sizeof(entry)); // Copy the entry back to the caller's buffer
-    }
-    return true;
-}
-
-
-bool update_did_entry(uint8_t *data, uint16_t payload_len)
-{
-    bool returnValue = NACK;
-    DiagnosticData entry;
-    if ((payload_len > DID_ID_SIZE) && (payload_len <= DID_ENTRY_SIZE + DID_ID_SIZE))
-    {
-        memcpy(&entry.did_id, &data[0], sizeof(entry.did_id)); // Read the DID ID from the payload
-        if (entry.did_id >= did_table[0].did_id && entry.did_id <= MAX_DID_TABLE_SIZE + did_table[0].did_id)
-        {
-            memcpy(entry.data, &data[DID_ID_SIZE], payload_len - DID_ID_SIZE);
-            for (int i = 0; i < MAX_DID_TABLE_SIZE; i++)
-            {
-                if (memcmp(&did_table[i].did_id, &entry.did_id, sizeof(entry.did_id)) == 0)
-                {
-                    uint8_t counter = 0;
-                    if (!did_table[i].is_encrypted)
-                    {
-                        did_table[i].is_encrypted = true;
-
-                        while (did_table[i].data[counter] != '\0')
-                        {
-                            flipBits((uint8_t *)&did_table[i].data[counter], sizeof(did_table[i].data[counter]));
-                            counter++;
-                        }
-                    }
-                    else
-                    {
-                        did_table[i].is_encrypted = false;
-                        while (did_table[i].data[counter] != '\0')
-                        {
-                            // flipBits((uint8_t *)&entry.data[counter], 1); // Simulate a bit flip in the entry data
-                            flipBits(&did_table[i].data[counter], sizeof(did_table[i].data[counter]));
-                            counter++;
-                        }
-                    }
-
-                    memcpy(&did_table[i].data, entry.data, DID_ENTRY_SIZE);
-                    returnValue = true;
-                    break;
-                }
-            }
-        }
-    }
-    return returnValue;
-}
-
-
 /* USER CODE END 0 */
 
 /**
@@ -413,17 +147,12 @@ int main(void)
   /* USER CODE BEGIN BSP */
 
   /* -- Sample board code to send message over COM1 port ---- */
+
   printf("Welcome to STM32 world !\n\r");
 
-  uint8_t key_attempt[KEY_SIZE] = {0xDE, 0xAD, 0xBE, 0xEF}; // Correct key
-  if (service_handlers[0](key_attempt, KEY_SIZE))
-  {
-      printf("Key verified successfully.\n\r");
-  }
-  else
-  {
-      printf("Key verification failed.\n\r");
-  }
+  // char buffer[100] = {0};
+  // sprintf(buffer, "Welcome to STM32 world !\n\r");
+  // HAL_UART_Transmit(&huart1, (uint8_t*)buffer, 24, HAL_MAX_DELAY);
 
   /* -- Sample board code to switch on leds ---- */
   BSP_LED_On(LED_GREEN);
@@ -434,6 +163,10 @@ int main(void)
 
   /* Infinite loop */
   /* USER CODE BEGIN WHILE */
+
+  char msg[17] = "SECRET_PASS12345\0";
+  char key = 0xCD;
+
   while (1)
   {
     /* -- Sample board code for User push-button in interrupt mode ---- */
@@ -446,24 +179,10 @@ int main(void)
       BSP_LED_Toggle(LED_BLUE);
       BSP_LED_Toggle(LED_RED);
 
-	  char *str = "HELLO";
-	  printf("\n\n\rString: %s\n\r", str);
+      encryptMessage(&msg[0], key, MSGLEN);
+      printf("Encrypted message: %s\n\r", msg);
 
-		uint64_t decimalRepresentation = concatenateBitRepresentationIntoDecimal(str);
-		printf("Decimal representation: %llu\n\r", decimalRepresentation);
-
-		uint64_t encryptedUint64 = safe_mult_mod(decimalRepresentation, 65537, 493071499771);
-		printf("Encrypted uint64: %llu\n\r", encryptedUint64);
-
-		uint64_t decryptedUint64 = safe_mult_mod(encryptedUint64, 266513779457, 493071499771);
-		printf("Decrypted uint64: %llu\n\r", decryptedUint64);
-
-		char decrypted_str[9];
-		stringFromEncryptedDecimal(decryptedUint64, &decrypted_str[0], (sizeof(decrypted_str)/sizeof(decrypted_str[0])));
-		printf("Decrypted string: %s\n\r", decrypted_str);
-
-
-      /* ..... Perform your action ..... */
+	    /* ..... Perform your action ..... */
     }
     /* USER CODE END WHILE */
 
