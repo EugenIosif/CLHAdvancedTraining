@@ -27,6 +27,8 @@
 #include <stdbool.h>
 
 #include <stm32u5xx_hal_def.h>
+#include <stm32u5xx_hal_hash.h>
+#include <stm32u5xx_hal_spi.h>
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -80,7 +82,14 @@ void encryptMessage(char* msg, char key, int len);
 
 void encryptMessage(char* msg, char key, int len)
 {
+  char encrypted[17] = {0};
 
+  for(int i = 0; i < len; i++) {
+      encrypted[i] = msg[i] ^ key;
+  }
+  encrypted[len - 1] = '\0';
+  printf("Original array: %s\n\r", msg);
+  printf("Encrypted array: %s\n\r", encrypted);
 }
 /* USER CODE END 0 */
 
