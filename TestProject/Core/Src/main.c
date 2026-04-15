@@ -80,7 +80,7 @@ void encryptMessage(char* msg, char key, int len);
 
 void encryptMessage(char* msg, char key, int len)
 {
-  if(msg != NULL && len >= 0 && len <= MSGLEN)
+  if(msg != NULL && len > 0 && len <= MSGLEN)
   {
     for(int i = 0; (*msg+i != '\0' && i < len); i++)
     {
