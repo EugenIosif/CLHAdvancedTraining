@@ -37,7 +37,7 @@
 /* Private define ------------------------------------------------------------*/
 /* USER CODE BEGIN PD */
 
-#define MSGLEN 16
+#define MSGLEN 17
 
 /* USER CODE END PD */
 
@@ -80,9 +80,12 @@ void encryptMessage(char* msg, char key, int len);
 
 void encryptMessage(char* msg, char key, int len)
 {
-  for(int i = 0; (*msg+i != '\0' && i < len); i++)
+  if(msg != NULL && len >= 0 && len <= MSGLEN)
   {
-    msg[i] ^= key; // XOR encryption
+    for(int i = 0; (*msg+i != '\0' && i < len); i++)
+    {
+      msg[i] ^= key; // XOR encryption
+    }
   }
 }
 
@@ -167,7 +170,7 @@ int main(void)
   /* Infinite loop */
   /* USER CODE BEGIN WHILE */
 
-  char msg[17] = "SECRET_PASS12345\0";
+  char msg[17] = "SECRET_P\0ASS12345";
   char key = 0xCD;
 
   while (1)
