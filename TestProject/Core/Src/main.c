@@ -80,8 +80,12 @@ void encryptMessage(char* msg, char key, int len);
 
 void encryptMessage(char* msg, char key, int len)
 {
-
+  for(int i = 0; (*msg+i != '\0' && i < len); i++)
+  {
+    msg[i] ^= key; // XOR encryption
+  }
 }
+
 /* USER CODE END 0 */
 
 /**
