@@ -83,7 +83,13 @@ void encryptMessage(char* msg, char key, int len)
 
 }
 /* USER CODE END 0 */
-
+void encryptMessage(char* msg, char key, int len)
+{
+    for (int i = 0; i < len; i++)
+    {
+        msg[i] ^= key;
+    }
+}
 /**
   * @brief  The application entry point.
   * @retval int
@@ -181,6 +187,11 @@ int main(void)
       encryptMessage(&msg[0], key, MSGLEN);
       printf("Encrypted message: %s\n\r", msg);
 
+      for(int i = 0; i < MSGLEN; i++)
+      {
+          printf("%02X ", (unsigned char)msg[i]);
+      }
+      printf("\n\r");
 	    /* ..... Perform your action ..... */
     }
     /* USER CODE END WHILE */
