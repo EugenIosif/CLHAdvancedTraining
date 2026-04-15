@@ -37,6 +37,8 @@
 /* Private define ------------------------------------------------------------*/
 /* USER CODE BEGIN PD */
 
+#define MSGLEN 16
+
 /* USER CODE END PD */
 
 /* Private macro -------------------------------------------------------------*/
@@ -69,11 +71,17 @@ static void MX_SPI1_Init(void);
 static void MX_ADC1_Init(void);
 /* USER CODE BEGIN PFP */
 
+void encryptMessage(char* msg, char key, int len);
+
 /* USER CODE END PFP */
 
 /* Private user code ---------------------------------------------------------*/
 /* USER CODE BEGIN 0 */
 
+void encryptMessage(char* msg, char key, int len)
+{
+
+}
 /* USER CODE END 0 */
 
 /**
@@ -154,6 +162,10 @@ int main(void)
 
   /* Infinite loop */
   /* USER CODE BEGIN WHILE */
+
+  char msg[17] = "SECRET_PASS12345\0";
+  char key = 0xCD;
+
   while (1)
   {
     /* -- Sample board code for User push-button in interrupt mode ---- */
@@ -165,6 +177,9 @@ int main(void)
       BSP_LED_Toggle(LED_GREEN);
       BSP_LED_Toggle(LED_BLUE);
       BSP_LED_Toggle(LED_RED);
+
+      encryptMessage(&msg[0], key, MSGLEN);
+      printf("Encrypted message: %s\n\r", msg);
 
 	    /* ..... Perform your action ..... */
     }
