@@ -413,7 +413,11 @@ int main(void)
   /* USER CODE BEGIN BSP */
 
   /* -- Sample board code to send message over COM1 port ---- */
-  printf("Welcome to STM32 world !\n\r");
+  
+  // printf("Welcome to STM32 world !\n\r");
+
+  // sprintf(buffer, "Welcome to STM32 world !\n\r");
+  // HAL_UART_Transmit(&huart1, (uint8_t*)buffer, 15, HAL_MAX_DELAY);
 
   uint8_t key_attempt[KEY_SIZE] = {0xDE, 0xAD, 0xBE, 0xEF}; // Correct key
   if (service_handlers[0](key_attempt, KEY_SIZE))
