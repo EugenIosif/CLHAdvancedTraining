@@ -43,10 +43,32 @@
 #define DID_ID_SIZE 2
 #define NACK false // Negative Response Code for UDS services
 #define NUMBER_OF_SERVICES 3
+
+#define IDLE 0x00
+#define NEGOTIATING 0x01
+#define WAITINGFORSECRET 0x02
+#define RECEIVEENCRYPTEDMESSAGE 0x03
+#define CLOSED 0xFF
+
+#define EXCHANGEINITIALIZATION 0x01
+#define SECRETTANSMISSION 0x02
+#define SECRETRECEIVED 0x03
+#define ENCRYPTEDMESSAGERECEPTION 0x04
+
+#define UART_DATA_LENGTH 5
 /* USER CODE END PD */
 
 /* Private macro -------------------------------------------------------------*/
 /* USER CODE BEGIN PM */
+
+#define DEBUG_VERBOSITY 1
+#define UART_PRINT(fmt, ...) sprintf(buffer, fmt, ##__VA_ARGS__); \
+                            HAL_UART_Transmit(&huart1, (uint8_t*)buffer, strlen(buffer), HAL_MAX_DELAY);
+
+#if DEBUG_VERBOSITY == 1
+#else
+    #define UART_PRINT(fmt, ...) (void)0
+#endif
 
 #define MODULOMULTIPLICATION (a,b,n) (safe_mult(a,b) % n)
 
@@ -54,6 +76,8 @@
                                             c[i+j+1] += c[i+j]/10; \
                                             c[i+j]%=10; \
                                         })
+#define XOR_Decrypt(encryptedValue, key) (((encryptedValue) ^ (key)))
+#define XOR_Encrypt(Value, key) (((Value) ^ (key)))
 
 /* USER CODE END PM */
 
@@ -66,6 +90,8 @@ ADC_HandleTypeDef hadc1;
 HASH_HandleTypeDef hhash;
 
 SPI_HandleTypeDef hspi1;
+
+UART_HandleTypeDef huart2;
 
 /* USER CODE BEGIN PV */
 
@@ -80,6 +106,14 @@ typedef struct
 uint8_t stored_ecu_key[KEY_SIZE] = {0xDE, 0xAD, 0xBE, 0xEF};
 uint16_t did_ids_to_be_updated[4] = {0x1001, 0x1003, 0x1005, 0x1007};
 uint8_t key = 3; // Key for data encryption
+
+char buffer[100] = {0};
+uint8_t e = 2;
+uint64_t n = 19;
+uint64_t myPrivateIntermediary = 15;
+uint64_t sharedSecret = 0;
+
+uint8_t state = IDLE;
 
 DiagnosticData did_table[MAX_DID_TABLE_SIZE] = {
     {0x1001, "VIN123456789", false},
@@ -102,6 +136,7 @@ static void MX_ICACHE_Init(void);
 static void MX_HASH_Init(void);
 static void MX_SPI1_Init(void);
 static void MX_ADC1_Init(void);
+static void MX_USART2_UART_Init(void);
 /* USER CODE BEGIN PFP */
 
 bool verify_diagnostic_key(uint8_t *provided_key, uint16_t len);
@@ -117,7 +152,7 @@ uint64_t storeArrayInNumber(uint8_t* array, uint16_t size);
 uint64_t safe_mult(uint64_t a, uint64_t b);
 uint64_t safe_mult_mod(uint64_t a, uint64_t b, uint64_t n);
 HAL_StatusTypeDef ComputeSHA256FromMemory(uint32_t startAddress, uint32_t length, uint8_t *outputHash);
-
+void executeDiffieHellman(void);
 /* USER CODE END PFP */
 
 /* Private user code ---------------------------------------------------------*/
@@ -301,6 +336,105 @@ bool read_did_entry(uint8_t *data, uint16_t len)
     return true;
 }
 
+void executeDiffieHellman(void)
+{
+    char uart_data_tx[UART_DATA_LENGTH] = {0x00, 0x00, 0x00, 0x00, 0x00};
+    char uart_data_rx[UART_DATA_LENGTH] = {0x00, 0x00, 0x00, 0x00, 0x00};
+
+    while(1)
+    {
+        if(state == IDLE)
+        {
+            uart_data_tx[0] = EXCHANGEINITIALIZATION; //signal the start of the exchange
+            HAL_UART_Transmit(&huart1, (uint8_t*)uart_data_tx, UART_DATA_LENGTH, HAL_MAX_DELAY);
+            BspButtonState = BUTTON_RELEASED;
+            state = WAITINGFORSECRET;
+        }
+        else if(state == WAITINGFORSECRET)
+        {
+            UART_PRINT("\n\r Waiting for DH Value...");
+            HAL_UART_Receive(&huart1, (uint8_t*)uart_data_rx, UART_DATA_LENGTH, HAL_MAX_DELAY);
+            if(uart_data_rx[0] == SECRETRECEIVED)
+            {
+                uint32_t received_dh_value = (uart_data_rx[1] << 24) | (uart_data_rx[2] << 16) | (uart_data_rx[3] << 8) | uart_data_rx[4];
+                uint32_t decrypted_dh_value = simple_rsa_encrypt(received_dh_value, myPrivateIntermediary, n);
+                UART_PRINT("\n\r Received DH Value: %lu", decrypted_dh_value);
+                state = NEGOTIATING;
+            }
+        }
+        else if(state == NEGOTIATING)
+        {
+            //Transition logic for NEGOCIATING
+            uint32_t dh_value = simple_rsa_encrypt(e, myPrivateIntermediary, n);
+
+            UART_PRINT("\n\r Sending DH Value: %lu", dh_value);
+
+            uart_data_tx[0] = SECRETTANSMISSION;
+            uart_data_tx[1] = (dh_value >> 24) & 0xFF;
+            uart_data_tx[2] = (dh_value >> 16) & 0xFF;
+            uart_data_tx[3] = (dh_value >> 8) & 0xFF;
+            uart_data_tx[4] = dh_value & 0xFF;
+        
+            HAL_UART_Transmit(&huart1, (uint8_t*)uart_data_tx, UART_DATA_LENGTH, HAL_MAX_DELAY);
+
+            state = RECEIVEENCRYPTEDMESSAGE;
+        }
+        else if(state == RECEIVEENCRYPTEDMESSAGE)
+        {
+            UART_PRINT("\n\r Waiting for Encrypted Message...");
+            HAL_UART_Receive(&huart1, (uint8_t*)uart_data_rx, UART_DATA_LENGTH, HAL_MAX_DELAY);
+            if(uart_data_rx[0] == ENCRYPTEDMESSAGERECEPTION)
+            {
+                uint32_t encryptedLedState = (uart_data_rx[1] << 24) | (uart_data_rx[2] << 16) | (uart_data_rx[3] << 8) | uart_data_rx[4];
+                UART_PRINT("\n\r Received Encrypted Message: %lu", encryptedLedState);
+                uint32_t decryptedLedState = XOR_Decrypt(encryptedLedState, sharedSecret);
+                UART_PRINT("\n\r Decrypted Message: %lu", decryptedLedState);
+                if(decryptedLedState & 0x01)
+                {
+                    BSP_LED_On(LED_RED);
+                }
+                else
+                {
+                    BSP_LED_Off(LED_RED);
+                }
+
+                if(decryptedLedState & 0x02)
+                {
+                    BSP_LED_On(LED_BLUE);
+                }
+                else
+                {
+                    BSP_LED_Off(LED_BLUE);
+                }
+
+                if(decryptedLedState & 0x04)
+                {
+                    BSP_LED_On(LED_GREEN);
+                }
+                else
+                {
+                    BSP_LED_Off(LED_GREEN);
+                }
+                
+                
+                state = CLOSED;
+            }
+        }
+        else if(state == CLOSED)
+        {
+            UART_PRINT("\n\r Communication Closed.");
+            state = IDLE;
+            break;
+        }  
+        else
+        {
+            UART_PRINT("\n\r Invalid State.");
+            state = IDLE;
+            break;
+        }
+    }
+}
+
 
 bool update_did_entry(uint8_t *data, uint16_t payload_len)
 {
@@ -387,6 +521,7 @@ int main(void)
   MX_HASH_Init();
   MX_SPI1_Init();
   MX_ADC1_Init();
+  MX_USART2_UART_Init();
   /* USER CODE BEGIN 2 */
 
   /* USER CODE END 2 */
@@ -413,17 +548,21 @@ int main(void)
   /* USER CODE BEGIN BSP */
 
   /* -- Sample board code to send message over COM1 port ---- */
-  printf("Welcome to STM32 world !\n\r");
+  // printf("Welcome to STM32 world !\n\r");
 
-  uint8_t key_attempt[KEY_SIZE] = {0xDE, 0xAD, 0xBE, 0xEF}; // Correct key
-  if (service_handlers[0](key_attempt, KEY_SIZE))
-  {
-      printf("Key verified successfully.\n\r");
-  }
-  else
-  {
-      printf("Key verification failed.\n\r");
-  }
+  sprintf(buffer, "Welcome to STM32 world !\n\r");
+  HAL_UART_Transmit(&huart1, (uint8_t*)buffer, 15, HAL_MAX_DELAY);
+
+
+//  uint8_t key_attempt[KEY_SIZE] = {0xDE, 0xAD, 0xBE, 0xEF}; // Correct key
+  // if (service_handlers[0](key_attempt, KEY_SIZE))
+  // {
+  //     printf("Key verified successfully.\n\r");
+  // }
+  // else
+  // {
+  //     printf("Key verification failed.\n\r");
+  // }
 
   /* -- Sample board code to switch on leds ---- */
   BSP_LED_On(LED_GREEN);
@@ -446,24 +585,26 @@ int main(void)
       BSP_LED_Toggle(LED_BLUE);
       BSP_LED_Toggle(LED_RED);
 
-	  char *str = "HELLO";
-	  printf("\n\n\rString: %s\n\r", str);
+      executeDiffieHellman();
+	  // char *str = "HELLO";
+	  // printf("\n\n\rString: %s\n\r", str);
 
-		uint64_t decimalRepresentation = concatenateBitRepresentationIntoDecimal(str);
-		printf("Decimal representation: %llu\n\r", decimalRepresentation);
+		// uint64_t decimalRepresentation = concatenateBitRepresentationIntoDecimal(str);
+		// printf("Decimal representation: %llu\n\r", decimalRepresentation);
 
-		uint64_t encryptedUint64 = safe_mult_mod(decimalRepresentation, 65537, 493071499771);
-		printf("Encrypted uint64: %llu\n\r", encryptedUint64);
+		// uint64_t encryptedUint64 = safe_mult_mod(decimalRepresentation, 65537, 493071499771);
+		// printf("Encrypted uint64: %llu\n\r", encryptedUint64);
 
-		uint64_t decryptedUint64 = safe_mult_mod(encryptedUint64, 266513779457, 493071499771);
-		printf("Decrypted uint64: %llu\n\r", decryptedUint64);
+		// uint64_t decryptedUint64 = safe_mult_mod(encryptedUint64, 266513779457, 493071499771);
+		// printf("Decrypted uint64: %llu\n\r", decryptedUint64);
 
-		char decrypted_str[9];
-		stringFromEncryptedDecimal(decryptedUint64, &decrypted_str[0], (sizeof(decrypted_str)/sizeof(decrypted_str[0])));
-		printf("Decrypted string: %s\n\r", decrypted_str);
+		// char decrypted_str[9];
+		// stringFromEncryptedDecimal(decryptedUint64, &decrypted_str[0], (sizeof(decrypted_str)/sizeof(decrypted_str[0])));
+		// printf("Decrypted string: %s\n\r", decrypted_str);
 
 
       /* ..... Perform your action ..... */
+
     }
     /* USER CODE END WHILE */
 
@@ -698,6 +839,54 @@ static void MX_SPI1_Init(void)
   /* USER CODE BEGIN SPI1_Init 2 */
 
   /* USER CODE END SPI1_Init 2 */
+
+}
+
+/**
+  * @brief USART2 Initialization Function
+  * @param None
+  * @retval None
+  */
+static void MX_USART2_UART_Init(void)
+{
+
+  /* USER CODE BEGIN USART2_Init 0 */
+
+  /* USER CODE END USART2_Init 0 */
+
+  /* USER CODE BEGIN USART2_Init 1 */
+
+  /* USER CODE END USART2_Init 1 */
+  huart2.Instance = USART2;
+  huart2.Init.BaudRate = 115200;
+  huart2.Init.WordLength = UART_WORDLENGTH_8B;
+  huart2.Init.StopBits = UART_STOPBITS_1;
+  huart2.Init.Parity = UART_PARITY_NONE;
+  huart2.Init.Mode = UART_MODE_TX_RX;
+  huart2.Init.HwFlowCtl = UART_HWCONTROL_NONE;
+  huart2.Init.OverSampling = UART_OVERSAMPLING_16;
+  huart2.Init.OneBitSampling = UART_ONE_BIT_SAMPLE_DISABLE;
+  huart2.Init.ClockPrescaler = UART_PRESCALER_DIV1;
+  huart2.AdvancedInit.AdvFeatureInit = UART_ADVFEATURE_NO_INIT;
+  if (HAL_UART_Init(&huart2) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  if (HAL_UARTEx_SetTxFifoThreshold(&huart2, UART_TXFIFO_THRESHOLD_1_8) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  if (HAL_UARTEx_SetRxFifoThreshold(&huart2, UART_RXFIFO_THRESHOLD_1_8) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  if (HAL_UARTEx_DisableFifoMode(&huart2) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  /* USER CODE BEGIN USART2_Init 2 */
+
+  /* USER CODE END USART2_Init 2 */
 
 }
 
