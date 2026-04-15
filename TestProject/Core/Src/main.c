@@ -48,7 +48,7 @@
 /* Private macro -------------------------------------------------------------*/
 /* USER CODE BEGIN PM */
 
-#define MODULOMULTIPLICATION (a,b,n) (safe_mult(a,b) % n)
+#define MODULOMULTIPLICATION(a,b,n) (safe_mult(a,b) % n)
 
 #define SIMPLEMULTIPLICATION(a, b, c) ({    c[i+j]+=a[i]*b[j]; \
                                             c[i+j+1] += c[i+j]/10; \
@@ -232,10 +232,10 @@ uint64_t simple_rsa_encrypt(uint64_t message, uint64_t e, uint64_t n)
     message = message % n;
     while (e > 0) {
         if (e % 2 == 1){
-            result = safe_mult_mod(result, message, n);
+            result = MODULOMULTIPLICATION(result, message, n);
         }
         e = e >> 1;
-        message = safe_mult_mod(message, message, n);
+        message = MODULOMULTIPLICATION(message, message, n);
     }
     return result;
 }
@@ -244,6 +244,7 @@ uint64_t concatenateBitRepresentationIntoDecimal(char *str) {
     uint64_t returnValue = 0;
     for (int i = 0; str[i] != '\0'; i++) {
         returnValue = (returnValue << 8) + (uint8_t)str[i];
+        printf("Value String %d \n\r", (uint8_t)str[i] );
     }
     return returnValue;
 }
@@ -446,16 +447,39 @@ int main(void)
       BSP_LED_Toggle(LED_BLUE);
       BSP_LED_Toggle(LED_RED);
 
-	  char *str = "HELLO";
+	  char *str = "HELLO WORLD!";
+	  char str_encrypt[15];
+	  char str_decrypt[15];
 	  printf("\n\n\rString: %s\n\r", str);
 
-		uint64_t decimalRepresentation = concatenateBitRepresentationIntoDecimal(str);
-		printf("Decimal representation: %llu\n\r", decimalRepresentation);
+		uint64_t decimalRepresentation = concatenateBitRepresentationIntoDecimal(str);;
+		printf("Decimal representation: %llu data\n\r", decimalRepresentation);
 
-		uint64_t encryptedUint64 = safe_mult_mod(decimalRepresentation, 65537, 493071499771);
+		for (int i = 0; str[i] != '\0'; i++ )
+		{
+			  int c = 1;
+			  for (int i = 0; i < 3; i++)
+			  {
+			    c = MODULOMULTIPLICATION(c, str[i], 493);
+			  }
+			printf("Encrypt value %d from %c decimal %d \n\r",str_encrypt[i], str[i], str[i]);
+		}
+
+		for (int i = 0; i < 12; i++ )
+		{
+//			str_decrypt[i] = simple_rsa_encrypt(str_encrypt[i], 75, 493);
+			  int c = 1;
+			  for (int j = 0; j < 75; i++)
+			  {
+			    c = MODULOMULTIPLICATION(c, str_encrypt[i], 493);
+			  }
+			printf("Decrypt value %d to %c from decimal %d \n\r",str_decrypt[i], str_decrypt[i], str_encrypt[i]);
+		}
+
+		uint64_t encryptedUint64 = simple_rsa_encrypt(decimalRepresentation, 65537, 493071499771);
 		printf("Encrypted uint64: %llu\n\r", encryptedUint64);
 
-		uint64_t decryptedUint64 = safe_mult_mod(encryptedUint64, 266513779457, 493071499771);
+		uint64_t decryptedUint64 = simple_rsa_encrypt(encryptedUint64, 266513779457, 493071499771);
 		printf("Decrypted uint64: %llu\n\r", decryptedUint64);
 
 		char decrypted_str[9];
