@@ -78,9 +78,10 @@ void encryptMessage(char* msg, char key, int len);
 /* Private user code ---------------------------------------------------------*/
 /* USER CODE BEGIN 0 */
 
-void encryptMessage(char* msg, char key, int len)
-{
-
+void encryptMessage(char* msg, char key, int len) {
+  for (int i = 0; i < len; i++) {
+    msg[i] ^= key;
+  }
 }
 /* USER CODE END 0 */
 
