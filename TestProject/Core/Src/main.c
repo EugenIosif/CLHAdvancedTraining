@@ -44,12 +44,7 @@
 /* Private macro -------------------------------------------------------------*/
 /* USER CODE BEGIN PM */
 
-#define MODULOMULTIPLICATION (a,b,n) (safe_mult(a,b) % n)
 
-#define SIMPLEMULTIPLICATION(a, b, c) ({    c[i+j]+=a[i]*b[j]; \
-                                            c[i+j+1] += c[i+j]/10; \
-                                            c[i+j]%=10; \
-                                        })
 
 /* USER CODE END PM */
 
@@ -58,35 +53,11 @@
 COM_InitTypeDef BspCOMInit;
 __IO uint32_t BspButtonState = BUTTON_RELEASED;
 ADC_HandleTypeDef hadc1;
-
 HASH_HandleTypeDef hhash;
-
 SPI_HandleTypeDef hspi1;
+UART_HandleTypeDef huart1;
 
 /* USER CODE BEGIN PV */
-
-typedef bool (*UDSServiceHandler)(uint8_t *data, uint16_t len);
-typedef struct
-{
-    uint16_t did_id;
-    unsigned char data[DID_ENTRY_SIZE];
-    bool is_encrypted;
-} DiagnosticData;
-
-uint8_t stored_ecu_key[KEY_SIZE] = {0xDE, 0xAD, 0xBE, 0xEF};
-uint16_t did_ids_to_be_updated[4] = {0x1001, 0x1003, 0x1005, 0x1007};
-uint8_t key = 3; // Key for data encryption
-
-DiagnosticData did_table[MAX_DID_TABLE_SIZE] = {
-    {0x1001, "VIN123456789", false},
-    {0x1002, "FW_VER_1.0.0", false},
-    {0x1003, "HW_VER_A", false},
-    {0x1004, "PROD_DATE_2020", false},
-    {0x1005, "SUPPORT_24/7", false},
-    {0x1006, "WARRANTY_3YRS", false},
-    {0x1007, "RECALL_NONE", false},
-    {0x1008, "OWNER_JOHN", false}
-};
 
 /* USER CODE END PV */
 
@@ -175,17 +146,12 @@ int main(void)
   /* USER CODE BEGIN BSP */
 
   /* -- Sample board code to send message over COM1 port ---- */
+
   printf("Welcome to STM32 world !\n\r");
 
-  uint8_t key_attempt[KEY_SIZE] = {0xDE, 0xAD, 0xBE, 0xEF}; // Correct key
-  if (service_handlers[0](key_attempt, KEY_SIZE))
-  {
-      printf("Key verified successfully.\n\r");
-  }
-  else
-  {
-      printf("Key verification failed.\n\r");
-  }
+  // char buffer[100] = {0};
+  // sprintf(buffer, "Welcome to STM32 world !\n\r");
+  // HAL_UART_Transmit(&huart1, (uint8_t*)buffer, 24, HAL_MAX_DELAY);
 
   /* -- Sample board code to switch on leds ---- */
   BSP_LED_On(LED_GREEN);
