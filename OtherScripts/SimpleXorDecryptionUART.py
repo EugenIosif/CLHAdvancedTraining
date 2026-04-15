@@ -9,9 +9,10 @@ ser = serial.Serial(
     stopbits=serial.STOPBITS_ONE,
     bytesize=serial.EIGHTBITS
 )
-
-        if(ser.in_waiting > 0):
-            bs = ser.read(ser.in_waiting)  # Clear the buffer
-            print("Data received:", bs)  # Read and print the received data
-            decrypted_data = bytes([b ^ 0xCD for b in bs])  # Decrypt using XOR with 0xCD
-            print("Decrypted data:", decrypted_data)  # Print the decrypted data
+while True:
+    if(ser.in_waiting > 0):
+        bs = ser.read(ser.in_waiting)  # Clear the buffer
+        print("Data received:", bs)  # Read and print the received data
+        decrypted_data = bytes([b ^ 0xCD for b in bs])  # Decrypt using XOR with 0xCD
+        print("Decrypted data:", decrypted_data)  # Print the decrypted data
+    time.sleep(0.05)
