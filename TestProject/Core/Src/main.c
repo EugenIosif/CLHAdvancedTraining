@@ -61,11 +61,11 @@
 /* Private macro -------------------------------------------------------------*/
 /* USER CODE BEGIN PM */
 
-#define DEBUG_VERBOSITY 1
+
+#define DEBUG_VERBOSITY 0
+#if DEBUG_VERBOSITY == 1
 #define UART_PRINT(fmt, ...) sprintf(buffer, fmt, ##__VA_ARGS__); \
                             HAL_UART_Transmit(&huart1, (uint8_t*)buffer, strlen(buffer), HAL_MAX_DELAY);
-
-#if DEBUG_VERBOSITY == 1
 #else
     #define UART_PRINT(fmt, ...) (void)0
 #endif
@@ -359,8 +359,8 @@ void executeDiffieHellman(void)
             if(uart_data_rx[0] == SECRETRECEIVED)
             {
                 uint32_t received_dh_value = (uart_data_rx[1] << 24) | (uart_data_rx[2] << 16) | (uart_data_rx[3] << 8) | uart_data_rx[4];
-                uint32_t decrypted_dh_value = simple_rsa_encrypt(received_dh_value, myPrivateIntermediary, n);
-                UART_PRINT("\n\r Received DH Value: %lu", decrypted_dh_value);
+                sharedSecret = simple_rsa_encrypt(received_dh_value, myPrivateIntermediary, n);
+                UART_PRINT("\n\r Received DH Value: %lu", sharedSecret);
                 state = NEGOTIATING;
             }
         }
