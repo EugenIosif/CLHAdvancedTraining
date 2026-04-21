@@ -468,6 +468,40 @@ bool update_did_entry(uint8_t *data, uint16_t payload_len)
     return returnValue;
 }
 
+void computeFunctionSignature128B(uint32_t * function)
+{
+	//init the AES library
+	struct AES_ctx ctx;
+	AES_init_ctx(&ctx, key);
+	uint8_t hashOutput[32] = {0};
+
+	//compute the SHA for the first 128 bytes of the update_did_entry function
+	ComputeSHA256FromMemory((uint32_t)function, 256, (uint8_t*)&hashOutput[0]);
+	printf("\n\n\rSHA-256 Hash: ");
+	for (int i = 0; i < 32; i++)
+	{
+	  printf("%02x", hashOutput[i]);
+	}
+
+	printf("\n\n\rFunction signature: ");
+	//encrypted hash = signature
+	AES_ECB_encrypt(&ctx, hashOutput);
+
+	for(int i = 0; i < 32; i++)
+	{
+	  printf("%02x", hashOutput[i]);
+	}
+
+	//decrypt the signature to check the hash
+	printf("\n\n\rDecrypted signature: ");
+	AES_ECB_decrypt(&ctx, hashOutput);
+
+	for(int i = 0; i < 32; i++)
+	{
+	  printf("%02x", hashOutput[i]);
+	}
+}
+
 
 /* USER CODE END 0 */
 
@@ -570,36 +604,7 @@ int main(void)
       BSP_LED_Toggle(LED_BLUE);
       BSP_LED_Toggle(LED_RED);
 
-      //init the AES library
-      struct AES_ctx ctx;
-      AES_init_ctx(&ctx, key);
-      uint8_t hashOutput[32] = {0};
-
-      //compute the SHA for the first 128 bytes of the update_did_entry function
-      ComputeSHA256FromMemory((uint32_t)update_did_entry, 128, (uint8_t*)&hashOutput[0]);
-      printf("\n\n\rSHA-256 Hash: ");
-      for (int i = 0; i < 32; i++)
-      {
-          printf("%02x", hashOutput[i]);
-      }
-
-      printf("\n\n\rFunction signature: ");
-      //encrypted hash = signature
-      AES_ECB_encrypt(&ctx, hashOutput);
-
-      for(int i = 0; i < 32; i++)
-      {
-          printf("%02x", hashOutput[i]);
-      }
-
-      //decrypt the signature to check the hash
-      printf("\n\n\rDecrypted signature: ");
-      AES_ECB_decrypt(&ctx, hashOutput);
-
-      for(int i = 0; i < 32; i++)
-      {
-          printf("%02x", hashOutput[i]);
-      }
+      computeFunctionSignature128B((uint32_t*)update_did_entry);
 
       /* ..... Perform your action ..... */
 
