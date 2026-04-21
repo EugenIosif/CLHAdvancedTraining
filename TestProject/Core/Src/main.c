@@ -26,6 +26,8 @@
 #include <string.h>
 #include <stdbool.h>
 
+#include "aes.h"
+
 #include <stm32u5xx_hal_def.h>
 /* USER CODE END Includes */
 
@@ -88,11 +90,9 @@ __IO uint32_t BspButtonState = BUTTON_RELEASED;
 ADC_HandleTypeDef hadc1;
 
 HASH_HandleTypeDef hhash;
+UART_HandleTypeDef huart1;
 
 SPI_HandleTypeDef hspi1;
-
-UART_HandleTypeDef huart1;
-UART_HandleTypeDef huart2;
 
 /* USER CODE BEGIN PV */
 
@@ -106,13 +106,14 @@ typedef struct
 
 uint8_t stored_ecu_key[KEY_SIZE] = {0xDE, 0xAD, 0xBE, 0xEF};
 uint16_t did_ids_to_be_updated[4] = {0x1001, 0x1003, 0x1005, 0x1007};
-uint8_t key = 3; // Key for data encryption
+//uint8_t key = 3; // Key for data encryption
 
 char buffer[100] = {0};
 uint8_t e = 2;
 uint64_t n = 19;
 uint64_t myPrivateIntermediary = 15;
 uint64_t sharedSecret = 0;
+uint8_t key[] = { 0x2b, 0x7e, 0x15, 0x16, 0x28, 0xae, 0xd2, 0xa6, 0xab, 0xf7, 0x15, 0x88, 0x09, 0xcf, 0x4f, 0x3c };
 
 uint8_t state = IDLE;
 
@@ -137,8 +138,6 @@ static void MX_ICACHE_Init(void);
 static void MX_HASH_Init(void);
 static void MX_SPI1_Init(void);
 static void MX_ADC1_Init(void);
-static void MX_USART1_UART_Init(void);
-static void MX_USART2_UART_Init(void);
 /* USER CODE BEGIN PFP */
 
 bool verify_diagnostic_key(uint8_t *provided_key, uint16_t len);
@@ -260,21 +259,6 @@ bool secure_compare(uint8_t *a, uint8_t *b, size_t len)
         result |= (a[i] ^ b[i]); // XOR stays 0 if bytes match, becomes non-zero if they don't
     }
     return (result == 0); // Only checks the final accumulated result
-}
-
-
-uint64_t simple_rsa_encrypt(uint64_t message, uint64_t e, uint64_t n)
-{
-    uint64_t result = 1;
-    message = message % n;
-    while (e > 0) {
-        if (e % 2 == 1){
-            result = safe_mult_mod(result, message, n);
-        }
-        e = e >> 1;
-        message = safe_mult_mod(message, message, n);
-    }
-    return result;
 }
 
 uint64_t concatenateBitRepresentationIntoDecimal(char *str) {
@@ -523,8 +507,6 @@ int main(void)
   MX_HASH_Init();
   MX_SPI1_Init();
   MX_ADC1_Init();
-  MX_USART1_UART_Init();
-  MX_USART2_UART_Init();
   /* USER CODE BEGIN 2 */
 
   /* USER CODE END 2 */
@@ -588,23 +570,36 @@ int main(void)
       BSP_LED_Toggle(LED_BLUE);
       BSP_LED_Toggle(LED_RED);
 
-      executeDiffieHellman();
-	  // char *str = "HELLO";
-	  // printf("\n\n\rString: %s\n\r", str);
+      //init the AES library
+      struct AES_ctx ctx;
+      AES_init_ctx(&ctx, key);
+      uint8_t hashOutput[32] = {0};
 
-		// uint64_t decimalRepresentation = concatenateBitRepresentationIntoDecimal(str);
-		// printf("Decimal representation: %llu\n\r", decimalRepresentation);
+      //compute the SHA for the first 128 bytes of the update_did_entry function
+      ComputeSHA256FromMemory((uint32_t)update_did_entry, 128, (uint8_t*)&hashOutput[0]);
+      printf("\n\n\rSHA-256 Hash: ");
+      for (int i = 0; i < 32; i++)
+      {
+          printf("%02x", hashOutput[i]);
+      }
 
-		// uint64_t encryptedUint64 = safe_mult_mod(decimalRepresentation, 65537, 493071499771);
-		// printf("Encrypted uint64: %llu\n\r", encryptedUint64);
+      printf("\n\n\rFunction signature: ");
+      //encrypted hash = signature
+      AES_ECB_encrypt(&ctx, hashOutput);
 
-		// uint64_t decryptedUint64 = safe_mult_mod(encryptedUint64, 266513779457, 493071499771);
-		// printf("Decrypted uint64: %llu\n\r", decryptedUint64);
+      for(int i = 0; i < 32; i++)
+      {
+          printf("%02x", hashOutput[i]);
+      }
 
-		// char decrypted_str[9];
-		// stringFromEncryptedDecimal(decryptedUint64, &decrypted_str[0], (sizeof(decrypted_str)/sizeof(decrypted_str[0])));
-		// printf("Decrypted string: %s\n\r", decrypted_str);
+      //decrypt the signature to check the hash
+      printf("\n\n\rDecrypted signature: ");
+      AES_ECB_decrypt(&ctx, hashOutput);
 
+      for(int i = 0; i < 32; i++)
+      {
+          printf("%02x", hashOutput[i]);
+      }
 
       /* ..... Perform your action ..... */
 
@@ -842,102 +837,6 @@ static void MX_SPI1_Init(void)
   /* USER CODE BEGIN SPI1_Init 2 */
 
   /* USER CODE END SPI1_Init 2 */
-
-}
-
-/**
-  * @brief USART1 Initialization Function
-  * @param None
-  * @retval None
-  */
-void MX_USART1_UART_Init(void)
-{
-
-  /* USER CODE BEGIN USART1_Init 0 */
-
-  /* USER CODE END USART1_Init 0 */
-
-  /* USER CODE BEGIN USART1_Init 1 */
-
-  /* USER CODE END USART1_Init 1 */
-  huart1.Instance = USART1;
-  huart1.Init.BaudRate = 115200;
-  huart1.Init.WordLength = UART_WORDLENGTH_8B;
-  huart1.Init.StopBits = UART_STOPBITS_1;
-  huart1.Init.Parity = UART_PARITY_NONE;
-  huart1.Init.Mode = UART_MODE_TX_RX;
-  huart1.Init.HwFlowCtl = UART_HWCONTROL_NONE;
-  huart1.Init.OverSampling = UART_OVERSAMPLING_16;
-  huart1.Init.OneBitSampling = UART_ONE_BIT_SAMPLE_DISABLE;
-  huart1.Init.ClockPrescaler = UART_PRESCALER_DIV1;
-  huart1.AdvancedInit.AdvFeatureInit = UART_ADVFEATURE_NO_INIT;
-  if (HAL_UART_Init(&huart1) != HAL_OK)
-  {
-    Error_Handler();
-  }
-  if (HAL_UARTEx_SetTxFifoThreshold(&huart1, UART_TXFIFO_THRESHOLD_1_8) != HAL_OK)
-  {
-    Error_Handler();
-  }
-  if (HAL_UARTEx_SetRxFifoThreshold(&huart1, UART_RXFIFO_THRESHOLD_1_8) != HAL_OK)
-  {
-    Error_Handler();
-  }
-  if (HAL_UARTEx_DisableFifoMode(&huart1) != HAL_OK)
-  {
-    Error_Handler();
-  }
-  /* USER CODE BEGIN USART1_Init 2 */
-
-  /* USER CODE END USART1_Init 2 */
-
-}
-
-/**
-  * @brief USART2 Initialization Function
-  * @param None
-  * @retval None
-  */
-static void MX_USART2_UART_Init(void)
-{
-
-  /* USER CODE BEGIN USART2_Init 0 */
-
-  /* USER CODE END USART2_Init 0 */
-
-  /* USER CODE BEGIN USART2_Init 1 */
-
-  /* USER CODE END USART2_Init 1 */
-  huart2.Instance = USART2;
-  huart2.Init.BaudRate = 115200;
-  huart2.Init.WordLength = UART_WORDLENGTH_8B;
-  huart2.Init.StopBits = UART_STOPBITS_1;
-  huart2.Init.Parity = UART_PARITY_NONE;
-  huart2.Init.Mode = UART_MODE_TX_RX;
-  huart2.Init.HwFlowCtl = UART_HWCONTROL_NONE;
-  huart2.Init.OverSampling = UART_OVERSAMPLING_16;
-  huart2.Init.OneBitSampling = UART_ONE_BIT_SAMPLE_DISABLE;
-  huart2.Init.ClockPrescaler = UART_PRESCALER_DIV1;
-  huart2.AdvancedInit.AdvFeatureInit = UART_ADVFEATURE_NO_INIT;
-  if (HAL_UART_Init(&huart2) != HAL_OK)
-  {
-    Error_Handler();
-  }
-  if (HAL_UARTEx_SetTxFifoThreshold(&huart2, UART_TXFIFO_THRESHOLD_1_8) != HAL_OK)
-  {
-    Error_Handler();
-  }
-  if (HAL_UARTEx_SetRxFifoThreshold(&huart2, UART_RXFIFO_THRESHOLD_1_8) != HAL_OK)
-  {
-    Error_Handler();
-  }
-  if (HAL_UARTEx_DisableFifoMode(&huart2) != HAL_OK)
-  {
-    Error_Handler();
-  }
-  /* USER CODE BEGIN USART2_Init 2 */
-
-  /* USER CODE END USART2_Init 2 */
 
 }
 
