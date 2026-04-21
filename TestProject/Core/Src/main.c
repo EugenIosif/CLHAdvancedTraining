@@ -179,11 +179,11 @@ HAL_StatusTypeDef ComputeSHA256FromMemory(uint32_t startAddress, uint32_t length
     return status;
 }
 
-
 UDSServiceHandler service_handlers[3] = {
     (UDSServiceHandler)verify_diagnostic_key,
     (UDSServiceHandler)read_did_entry,
-    (UDSServiceHandler)update_did_entry};
+    (UDSServiceHandler)update_did_entry
+};
 
 inline void flipBits(uint8_t *data, size_t len)
 {
@@ -277,7 +277,6 @@ void stringFromEncryptedDecimal(uint64_t decimal, char *str, int size) {
     }
     str[index] = '\0'; // Null-terminate the string
 }
-
 
 bool verify_diagnostic_key(uint8_t *provided_key, uint16_t len)
 {
@@ -421,7 +420,6 @@ void executeDiffieHellman(void)
     }
 }
 
-
 bool update_did_entry(uint8_t *data, uint16_t payload_len)
 {
     bool returnValue = NACK;
@@ -482,6 +480,10 @@ void computeFunctionSignature128B(uint32_t * function)
 	{
 	  printf("%02x", hashOutput[i]);
 	}
+
+	printf("\n\n\r DISCLAMER: This is not the propper way to compute the signature, this is just for demonstration purposes. \
+    The signature should be computed using a private key and verified using the corresponding public key. \
+    Here we are just encrypting the hash with AES to simulate the signature generation and verification process!");
 
 	printf("\n\n\rFunction signature: ");
 	//encrypted hash = signature
@@ -571,17 +573,6 @@ int main(void)
 
   // sprintf(buffer, "Welcome to STM32 world !\n\r");
   // HAL_UART_Transmit(&huart1, (uint8_t*)buffer, 15, HAL_MAX_DELAY);
-
-
-//  uint8_t key_attempt[KEY_SIZE] = {0xDE, 0xAD, 0xBE, 0xEF}; // Correct key
-  // if (service_handlers[0](key_attempt, KEY_SIZE))
-  // {
-  //     printf("Key verified successfully.\n\r");
-  // }
-  // else
-  // {
-  //     printf("Key verification failed.\n\r");
-  // }
 
   /* -- Sample board code to switch on leds ---- */
   BSP_LED_On(LED_GREEN);

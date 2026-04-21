@@ -3091,9 +3091,9 @@ HAL_StatusTypeDef ComputeSHA256FromMemory(uint32_t startAddress, uint32_t length
  8001cf0:	20000864 	.word	0x20000864
 
 08001cf4 <flipBits>:
-    (UDSServiceHandler)verify_diagnostic_key,
     (UDSServiceHandler)read_did_entry,
-    (UDSServiceHandler)update_did_entry};
+    (UDSServiceHandler)update_did_entry
+};
 
 inline void flipBits(uint8_t *data, size_t len)
 {
@@ -3136,9 +3136,9 @@ inline void flipBits(uint8_t *data, size_t len)
  8001d32:	4770      	bx	lr
 
 08001d34 <update_did_entry>:
+        }
     }
 }
-
 
 bool update_did_entry(uint8_t *data, uint16_t payload_len)
 {
@@ -3599,9 +3599,9 @@ int main(void)
   {
     Error_Handler();
  8002040:	f000 f9b6 	bl	80023b0 <Error_Handler>
-  // {
-  //     printf("Key verification failed.\n\r");
-  // }
+
+  // sprintf(buffer, "Welcome to STM32 world !\n\r");
+  // HAL_UART_Transmit(&huart1, (uint8_t*)buffer, 15, HAL_MAX_DELAY);
 
   /* -- Sample board code to switch on leds ---- */
   BSP_LED_On(LED_GREEN);
