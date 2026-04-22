@@ -20,6 +20,7 @@ typedef struct things
     uint8_t mask[8];
     OperationType OP[8];
     uint64_t value;
+    uint8_t signature;
 } things;
 
 uint8_t getMask(things * thing, uint8_t position)
@@ -45,6 +46,15 @@ uint64_t getValue(things * thing)
     if(thing != NULL)
     {
         return thing->value;
+    }
+    return 0;
+}
+
+uint8_t getSignature(things * thing)
+{
+    if(thing != NULL)
+    {
+        return thing->signature;
     }
     return 0;
 }
@@ -78,6 +88,14 @@ void setValue(things * thing, uint64_t value)
     }
 }
 
+void setSignature(things * thing, uint8_t signature)
+{
+    if(thing != NULL)
+    {
+        thing->signature = signature;
+    }
+}
+
 void computeValue(things * thing)
 {
 uint64_t result = 0;
@@ -101,18 +119,29 @@ for (int i = 0; i<8 ; ++i)
     setValue(thing, result);
 }
 
-uint8_t computeRealValue (uint8_t * bytes)
+uint8_t computeSignature (uint8_t * bytes)
 {
-    uint8_t result = 0;
-
-    for(int i = 0; i < 8; ++i)
+    if(bytes != NULL)
     {
-        result ^= *bytes;
-        bytes++;
-    }
+        uint8_t result = 0;
+        for(int i = 0; i < 8; ++i)
+        {
+            result ^= *bytes;
+            bytes++;
+        }
+        return result;
+    }    
+}
 
-    //xor this byte to the result 
-    return result;
+void flipBits(uint8_t *data, size_t len)
+{
+    if(data!= NULL && len > 0)
+    {
+        for (size_t i = 0; i < len; i++)
+        {
+            data[i] ^= 0xFF; // Flip all bits in the byte
+        }
+    }    
 }
 
 void main(void)
@@ -142,7 +171,7 @@ void main(void)
                                     123456789
                             }};
 
-    uint8_t realValues[5] = {0};
+    uint8_t signatureArray[5] = {0};
     for(int i = 0; i < 5; ++i)
     {
         computeValue(&arrayOfThings[i]);
@@ -152,12 +181,22 @@ void main(void)
     {
         ValueUnion valueUnion;
         valueUnion.value = getValue(&arrayOfThings[i]);
-        realValues[i] = computeRealValue(valueUnion.bytes);
+        setSignature(&arrayOfThings[i], computeSignature(valueUnion.bytes));
     }
 
     for(int i = 0; i < 5; ++i)
     {
-        printf("Real value %d: %d\n", i, realValues[i]);
+        printf("Unencrypted HASH value of the %d entry: %d\n", i, getSignature(&arrayOfThings[i]));
     }
 
+    //encrypt the signatures of the first 4 things
+    for(int i = 0; i < 5; ++i)
+    {
+        flipBits(&arrayOfThings[i].signature, sizeof(arrayOfThings[i].signature));
+    }
+
+    for(int i = 0; i < 5; ++i)
+    {
+        printf("Encrypted HASH value of the %d entry (signature): %d\n", i, getSignature(&arrayOfThings[i]));
+    }
 }
