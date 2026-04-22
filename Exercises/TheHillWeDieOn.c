@@ -21,6 +21,7 @@ typedef struct things
     OperationType OP[8];
     uint64_t value;
     uint8_t signature;
+    uint8_t transmissionBuffer[10];
 } things;
 
 uint8_t getMask(things * thing, uint8_t position)
@@ -112,9 +113,9 @@ for (int i = 0; i<8 ; ++i)
         case NOT: computed = ~byte; break;
         case XOR: computed = byte ^ mask; break;
     }
-    uint64_t tempmask = 0xFF << (i * 8);
+    uint64_t tempmask = 0xFFULL << (i * 8);
     result &= ~tempmask;
-    result |= (computed & 0xFF) << (i * 8);
+    result |= (computed & 0xFFULL) << (i * 8);
 }
     setValue(thing, result);
 }
@@ -122,14 +123,14 @@ for (int i = 0; i<8 ; ++i)
 uint64_t testFunction(uint64_t * input, uint8_t newValue, uint8_t position)
 {
     uint64_t result = *input;
-    printf("Original value: 0x%llX\n", result);
+    // printf("Original value: 0x%llX\n", result);
     uint64_t tempmask = (0xFFULL << (position * 8));
-    printf("temp mask: 0x%llX\n", tempmask);
+    // printf("temp mask: 0x%llX\n", tempmask);
     result &= ~tempmask;
-    printf("Result after masking: 0x%llX\n", result);
+    // printf("Result after masking: 0x%llX\n", result);
 
     result |= (newValue & 0xFFULL) << (position * 8);
-    printf("Result after setting new value: 0x%llX\n", result);
+    // printf("Result after setting new value: 0x%llX\n", result);
     return result;
 }
 
@@ -185,37 +186,37 @@ void main(void)
                                     123456789
                             }};
 
-    // uint8_t signatureArray[5] = {0};
-    // for(int i = 0; i < 5; ++i)
-    // {
-    //     computeValue(&arrayOfThings[i]);
-    // }
+    uint8_t signatureArray[5] = {0};
+    for(int i = 0; i < 5; ++i)
+    {
+        computeValue(&arrayOfThings[i]);
+    }
     
-    // for(int i = 0; i < 5; ++i)
-    // {
-    //     ValueUnion valueUnion;
-    //     valueUnion.value = getValue(&arrayOfThings[i]);
-    //     setSignature(&arrayOfThings[i], computeSignature(valueUnion.bytes));
-    // }
+    for(int i = 0; i < 5; ++i)
+    {
+        ValueUnion valueUnion;
+        valueUnion.value = getValue(&arrayOfThings[i]);
+        setSignature(&arrayOfThings[i], computeSignature(valueUnion.bytes));
+    }
 
-    // for(int i = 0; i < 5; ++i)
-    // {
-    //     printf("Unencrypted HASH value of the %d entry: %d\n", i, getSignature(&arrayOfThings[i]));
-    // }
+    for(int i = 0; i < 5; ++i)
+    {
+        printf("Unencrypted HASH value of the %d entry: %d\n", i, getSignature(&arrayOfThings[i]));
+    }
 
-    // //encrypt the signatures of the first 4 things
-    // for(int i = 0; i < 5; ++i)
-    // {
-    //     flipBits(&arrayOfThings[i].signature, sizeof(arrayOfThings[i].signature));
-    // }
+    //encrypt the signatures of the first 4 things
+    for(int i = 0; i < 5; ++i)
+    {
+        flipBits(&arrayOfThings[i].signature, sizeof(arrayOfThings[i].signature));
+    }
 
-    // for(int i = 0; i < 5; ++i)
-    // {
-    //     printf("Encrypted HASH value of the %d entry (signature): %d\n", i, getSignature(&arrayOfThings[i]));
-    // }
+    for(int i = 0; i < 5; ++i)
+    {
+        printf("Encrypted HASH value of the %d entry (signature): %d\n", i, getSignature(&arrayOfThings[i]));
+    }
 
     
-    uint64_t randomValue = 0xDEADBEEFCAFEBABE;
-    randomValue = testFunction(&randomValue, 0xE0, 4);
-    printf("Modified value: 0x%llX\n", randomValue);
+    // uint64_t randomValue = 0xDEADBEEFCAFEBABE;
+    // randomValue = testFunction(&randomValue, 0xE0, 4);
+    // printf("Modified value: 0x%llX\n", randomValue);
 }
