@@ -26,6 +26,8 @@
 #include <string.h>
 #include <stdbool.h>
 
+#include "aes.h"
+
 #include <stm32u5xx_hal_def.h>
 /* USER CODE END Includes */
 
@@ -43,10 +45,32 @@
 #define DID_ID_SIZE 2
 #define NACK false // Negative Response Code for UDS services
 #define NUMBER_OF_SERVICES 3
+
+#define IDLE 0x00
+#define NEGOTIATING 0x01
+#define WAITINGFORSECRET 0x02
+#define RECEIVEENCRYPTEDMESSAGE 0x03
+#define CLOSED 0xFF
+
+#define EXCHANGEINITIALIZATION 0x01
+#define SECRETTANSMISSION 0x02
+#define SECRETRECEIVED 0x03
+#define ENCRYPTEDMESSAGERECEPTION 0x04
+
+#define UART_DATA_LENGTH 5
 /* USER CODE END PD */
 
 /* Private macro -------------------------------------------------------------*/
 /* USER CODE BEGIN PM */
+
+
+#define DEBUG_VERBOSITY 0
+#if DEBUG_VERBOSITY == 1
+#define UART_PRINT(fmt, ...) sprintf(buffer, fmt, ##__VA_ARGS__); \
+                            HAL_UART_Transmit(&huart1, (uint8_t*)buffer, strlen(buffer), HAL_MAX_DELAY);
+#else
+    #define UART_PRINT(fmt, ...) (void)0
+#endif
 
 #define MODULOMULTIPLICATION (a,b,n) (safe_mult(a,b) % n)
 
@@ -54,6 +78,8 @@
                                             c[i+j+1] += c[i+j]/10; \
                                             c[i+j]%=10; \
                                         })
+#define XOR_Decrypt(encryptedValue, key) (((encryptedValue) ^ (key)))
+#define XOR_Encrypt(Value, key) (((Value) ^ (key)))
 
 /* USER CODE END PM */
 
@@ -64,6 +90,7 @@ __IO uint32_t BspButtonState = BUTTON_RELEASED;
 ADC_HandleTypeDef hadc1;
 
 HASH_HandleTypeDef hhash;
+UART_HandleTypeDef huart1;
 
 SPI_HandleTypeDef hspi1;
 
@@ -79,7 +106,16 @@ typedef struct
 
 uint8_t stored_ecu_key[KEY_SIZE] = {0xDE, 0xAD, 0xBE, 0xEF};
 uint16_t did_ids_to_be_updated[4] = {0x1001, 0x1003, 0x1005, 0x1007};
-uint8_t key = 3; // Key for data encryption
+//uint8_t key = 3; // Key for data encryption
+
+char buffer[100] = {0};
+uint8_t e = 2;
+uint64_t n = 19;
+uint64_t myPrivateIntermediary = 15;
+uint64_t sharedSecret = 0;
+uint8_t key[] = { 0x2b, 0x7e, 0x15, 0x16, 0x28, 0xae, 0xd2, 0xa6, 0xab, 0xf7, 0x15, 0x88, 0x09, 0xcf, 0x4f, 0x3c };
+
+uint8_t state = IDLE;
 
 DiagnosticData did_table[MAX_DID_TABLE_SIZE] = {
     {0x1001, "VIN123456789", false},
@@ -117,7 +153,7 @@ uint64_t storeArrayInNumber(uint8_t* array, uint16_t size);
 uint64_t safe_mult(uint64_t a, uint64_t b);
 uint64_t safe_mult_mod(uint64_t a, uint64_t b, uint64_t n);
 HAL_StatusTypeDef ComputeSHA256FromMemory(uint32_t startAddress, uint32_t length, uint8_t *outputHash);
-
+void executeDiffieHellman(void);
 /* USER CODE END PFP */
 
 /* Private user code ---------------------------------------------------------*/
@@ -143,11 +179,11 @@ HAL_StatusTypeDef ComputeSHA256FromMemory(uint32_t startAddress, uint32_t length
     return status;
 }
 
-
 UDSServiceHandler service_handlers[3] = {
     (UDSServiceHandler)verify_diagnostic_key,
     (UDSServiceHandler)read_did_entry,
-    (UDSServiceHandler)update_did_entry};
+    (UDSServiceHandler)update_did_entry
+};
 
 inline void flipBits(uint8_t *data, size_t len)
 {
@@ -225,21 +261,6 @@ bool secure_compare(uint8_t *a, uint8_t *b, size_t len)
     return (result == 0); // Only checks the final accumulated result
 }
 
-
-uint64_t simple_rsa_encrypt(uint64_t message, uint64_t e, uint64_t n)
-{
-    uint64_t result = 1;
-    message = message % n;
-    while (e > 0) {
-        if (e % 2 == 1){
-            result = safe_mult_mod(result, message, n);
-        }
-        e = e >> 1;
-        message = safe_mult_mod(message, message, n);
-    }
-    return result;
-}
-
 uint64_t concatenateBitRepresentationIntoDecimal(char *str) {
     uint64_t returnValue = 0;
     for (int i = 0; str[i] != '\0'; i++) {
@@ -256,7 +277,6 @@ void stringFromEncryptedDecimal(uint64_t decimal, char *str, int size) {
     }
     str[index] = '\0'; // Null-terminate the string
 }
-
 
 bool verify_diagnostic_key(uint8_t *provided_key, uint16_t len)
 {
@@ -301,6 +321,104 @@ bool read_did_entry(uint8_t *data, uint16_t len)
     return true;
 }
 
+void executeDiffieHellman(void)
+{
+    char uart_data_tx[UART_DATA_LENGTH] = {0x00, 0x00, 0x00, 0x00, 0x00};
+    char uart_data_rx[UART_DATA_LENGTH] = {0x00, 0x00, 0x00, 0x00, 0x00};
+
+    while(1)
+    {
+        if(state == IDLE)
+        {
+            uart_data_tx[0] = EXCHANGEINITIALIZATION; //signal the start of the exchange
+            HAL_UART_Transmit(&huart1, (uint8_t*)uart_data_tx, UART_DATA_LENGTH, HAL_MAX_DELAY);
+            BspButtonState = BUTTON_RELEASED;
+            state = WAITINGFORSECRET;
+        }
+        else if(state == WAITINGFORSECRET)
+        {
+            UART_PRINT("\n\r Waiting for DH Value...");
+            HAL_UART_Receive(&huart1, (uint8_t*)uart_data_rx, UART_DATA_LENGTH, HAL_MAX_DELAY);
+            if(uart_data_rx[0] == SECRETRECEIVED)
+            {
+                uint32_t received_dh_value = (uart_data_rx[1] << 24) | (uart_data_rx[2] << 16) | (uart_data_rx[3] << 8) | uart_data_rx[4];
+                sharedSecret = simple_rsa_encrypt(received_dh_value, myPrivateIntermediary, n);
+                UART_PRINT("\n\r Received DH Value: %lu", sharedSecret);
+                state = NEGOTIATING;
+            }
+        }
+        else if(state == NEGOTIATING)
+        {
+            //Transition logic for NEGOCIATING
+            uint32_t dh_value = simple_rsa_encrypt(e, myPrivateIntermediary, n);
+
+            UART_PRINT("\n\r Sending DH Value: %lu", dh_value);
+
+            uart_data_tx[0] = SECRETTANSMISSION;
+            uart_data_tx[1] = (dh_value >> 24) & 0xFF;
+            uart_data_tx[2] = (dh_value >> 16) & 0xFF;
+            uart_data_tx[3] = (dh_value >> 8) & 0xFF;
+            uart_data_tx[4] = dh_value & 0xFF;
+        
+            HAL_UART_Transmit(&huart1, (uint8_t*)uart_data_tx, UART_DATA_LENGTH, HAL_MAX_DELAY);
+
+            state = RECEIVEENCRYPTEDMESSAGE;
+        }
+        else if(state == RECEIVEENCRYPTEDMESSAGE)
+        {
+            UART_PRINT("\n\r Waiting for Encrypted Message...");
+            HAL_UART_Receive(&huart1, (uint8_t*)uart_data_rx, UART_DATA_LENGTH, HAL_MAX_DELAY);
+            if(uart_data_rx[0] == ENCRYPTEDMESSAGERECEPTION)
+            {
+                uint32_t encryptedLedState = (uart_data_rx[1] << 24) | (uart_data_rx[2] << 16) | (uart_data_rx[3] << 8) | uart_data_rx[4];
+                UART_PRINT("\n\r Received Encrypted Message: %lu", encryptedLedState);
+                uint32_t decryptedLedState = XOR_Decrypt(encryptedLedState, sharedSecret);
+                UART_PRINT("\n\r Decrypted Message: %lu", decryptedLedState);
+                if(decryptedLedState & 0x01)
+                {
+                    BSP_LED_On(LED_RED);
+                }
+                else
+                {
+                    BSP_LED_Off(LED_RED);
+                }
+
+                if(decryptedLedState & 0x02)
+                {
+                    BSP_LED_On(LED_BLUE);
+                }
+                else
+                {
+                    BSP_LED_Off(LED_BLUE);
+                }
+
+                if(decryptedLedState & 0x04)
+                {
+                    BSP_LED_On(LED_GREEN);
+                }
+                else
+                {
+                    BSP_LED_Off(LED_GREEN);
+                }
+                
+                
+                state = CLOSED;
+            }
+        }
+        else if(state == CLOSED)
+        {
+            UART_PRINT("\n\r Communication Closed.");
+            state = IDLE;
+            break;
+        }  
+        else
+        {
+            UART_PRINT("\n\r Invalid State.");
+            state = IDLE;
+            break;
+        }
+    }
+}
 
 bool update_did_entry(uint8_t *data, uint16_t payload_len)
 {
@@ -346,6 +464,44 @@ bool update_did_entry(uint8_t *data, uint16_t payload_len)
         }
     }
     return returnValue;
+}
+
+void computeFunctionSignature128B(uint32_t * function)
+{
+	//init the AES library
+	struct AES_ctx ctx;
+	AES_init_ctx(&ctx, key);
+	uint8_t hashOutput[32] = {0};
+
+	//compute the SHA for the first 128 bytes of the update_did_entry function
+	ComputeSHA256FromMemory((uint32_t)function, 256, (uint8_t*)&hashOutput[0]);
+	printf("\n\n\rSHA-256 Hash: ");
+	for (int i = 0; i < 32; i++)
+	{
+	  printf("%02x", hashOutput[i]);
+	}
+
+	printf("\n\n\r DISCLAMER: This is not the propper way to compute the signature, this is just for demonstration purposes. \
+    The signature should be computed using a private key and verified using the corresponding public key. \
+    Here we are just encrypting the hash with AES to simulate the signature generation and verification process!");
+
+	printf("\n\n\rFunction signature: ");
+	//encrypted hash = signature
+	AES_ECB_encrypt(&ctx, hashOutput);
+
+	for(int i = 0; i < 32; i++)
+	{
+	  printf("%02x", hashOutput[i]);
+	}
+
+	//decrypt the signature to check the hash
+	printf("\n\n\rDecrypted signature: ");
+	AES_ECB_decrypt(&ctx, hashOutput);
+
+	for(int i = 0; i < 32; i++)
+	{
+	  printf("%02x", hashOutput[i]);
+	}
 }
 
 
@@ -413,17 +569,10 @@ int main(void)
   /* USER CODE BEGIN BSP */
 
   /* -- Sample board code to send message over COM1 port ---- */
-  printf("Welcome to STM32 world !\n\r");
+  // printf("Welcome to STM32 world !\n\r");
 
-  uint8_t key_attempt[KEY_SIZE] = {0xDE, 0xAD, 0xBE, 0xEF}; // Correct key
-  if (service_handlers[0](key_attempt, KEY_SIZE))
-  {
-      printf("Key verified successfully.\n\r");
-  }
-  else
-  {
-      printf("Key verification failed.\n\r");
-  }
+  // sprintf(buffer, "Welcome to STM32 world !\n\r");
+  // HAL_UART_Transmit(&huart1, (uint8_t*)buffer, 15, HAL_MAX_DELAY);
 
   /* -- Sample board code to switch on leds ---- */
   BSP_LED_On(LED_GREEN);
@@ -446,24 +595,10 @@ int main(void)
       BSP_LED_Toggle(LED_BLUE);
       BSP_LED_Toggle(LED_RED);
 
-	  char *str = "HELLO";
-	  printf("\n\n\rString: %s\n\r", str);
-
-		uint64_t decimalRepresentation = concatenateBitRepresentationIntoDecimal(str);
-		printf("Decimal representation: %llu\n\r", decimalRepresentation);
-
-		uint64_t encryptedUint64 = safe_mult_mod(decimalRepresentation, 65537, 493071499771);
-		printf("Encrypted uint64: %llu\n\r", encryptedUint64);
-
-		uint64_t decryptedUint64 = safe_mult_mod(encryptedUint64, 266513779457, 493071499771);
-		printf("Decrypted uint64: %llu\n\r", decryptedUint64);
-
-		char decrypted_str[9];
-		stringFromEncryptedDecimal(decryptedUint64, &decrypted_str[0], (sizeof(decrypted_str)/sizeof(decrypted_str[0])));
-		printf("Decrypted string: %s\n\r", decrypted_str);
-
+      computeFunctionSignature128B((uint32_t*)update_did_entry);
 
       /* ..... Perform your action ..... */
+
     }
     /* USER CODE END WHILE */
 
