@@ -1639,7 +1639,7 @@ void computeValue(things * thing)
  80012de:	bf00      	nop
 
 080012e0 <computeSignature>:
-    // printf("Result after setting new value: 0x%llX\n", result);
+    // printf("Result after setting new value: 0x%llX\n\r", result);
     return result;
 }
 
@@ -2000,11 +2000,11 @@ int main(void)
       }
   /* -- Sample board code to send message over COM1 port ---- */
 
-  printf("Welcome to STM32 world !\n\r");
+  printf("Welcome to STM32 world !\n\r\r");
  800150a:	4815      	ldr	r0, [pc, #84]	@ (8001560 <main+0x18c>)
  800150c:	f007 facc 	bl	8008aa8 <printf>
   // char buffer[100] = {0};
-  // sprintf(buffer, "Welcome to STM32 world !\n\r");
+  // sprintf(buffer, "Welcome to STM32 world !\n\r\r");
   // HAL_UART_Transmit(&huart1, (uint8_t*)buffer, 24, HAL_MAX_DELAY);
 
   /* -- Sample board code to switch on leds ---- */

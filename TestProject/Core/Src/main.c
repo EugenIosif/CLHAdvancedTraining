@@ -204,14 +204,14 @@ void computeValue(things * thing)
 uint64_t testFunction(uint64_t * input, uint8_t newValue, uint8_t position)
 {
     uint64_t result = *input;
-    // printf("Original value: 0x%llX\n", result);
+    // printf("Original value: 0x%llX\n\r", result);
     uint64_t tempmask = (0xFFULL << (position * 8));
-    // printf("temp mask: 0x%llX\n", tempmask);
+    // printf("temp mask: 0x%llX\n\r", tempmask);
     result &= ~tempmask;
-    // printf("Result after masking: 0x%llX\n", result);
+    // printf("Result after masking: 0x%llX\n\r", result);
 
     result |= (newValue & 0xFFULL) << (position * 8);
-    // printf("Result after setting new value: 0x%llX\n", result);
+    // printf("Result after setting new value: 0x%llX\n\r", result);
     return result;
 }
 
@@ -349,10 +349,10 @@ int main(void)
       }
   /* -- Sample board code to send message over COM1 port ---- */
 
-  printf("Welcome to STM32 world !\n\r");
+  printf("Welcome to STM32 world !\n\r\r");
 
   // char buffer[100] = {0};
-  // sprintf(buffer, "Welcome to STM32 world !\n\r");
+  // sprintf(buffer, "Welcome to STM32 world !\n\r\r");
   // HAL_UART_Transmit(&huart1, (uint8_t*)buffer, 24, HAL_MAX_DELAY);
 
   /* -- Sample board code to switch on leds ---- */
@@ -707,7 +707,7 @@ void assert_failed(uint8_t *file, uint32_t line)
 {
   /* USER CODE BEGIN 6 */
   /* User can add his own implementation to report the file name and line number,
-     ex: printf("Wrong parameters value: file %s on line %d\r\n", file, line) */
+     ex: printf("Wrong parameters value: file %s on line %d\r\n\r", file, line) */
   /* USER CODE END 6 */
 }
 #endif /* USE_FULL_ASSERT */
