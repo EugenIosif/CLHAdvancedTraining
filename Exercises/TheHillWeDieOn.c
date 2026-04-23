@@ -98,25 +98,25 @@ void setSignature(things * thing, uint8_t signature)
 
 void computeValue(things * thing)
 {
-uint64_t result = 0;
-for (int i = 0; i<8 ; ++i)
-{
-    uint64_t byte = (getValue(thing) >> (i * 8)) & 0xFF; 
-    uint8_t mask = getMask (thing, i);
-    OperationType op = getOperation(thing, i);
-    uint64_t computed;
-    switch (op )
+    uint64_t result = 0;
+    for (int i = 0; i<8 ; ++i)
     {
-        case AND: computed = byte & mask; break;
-        case OR: computed = byte | mask; break;
-        case NOT: computed = ~byte; break;
-        case XOR: computed = byte ^ mask; break;
+        uint64_t byte = (getValue(thing) >> (i * 8)) & 0xFF; 
+        uint8_t mask = getMask (thing, i);
+        OperationType op = getOperation(thing, i);
+        uint64_t computed;
+        switch (op )
+        {
+            case AND: computed = byte & mask; break;
+            case OR: computed = byte | mask; break;
+            case NOT: computed = ~byte; break;
+            case XOR: computed = byte ^ mask; break;
+        }
+        uint64_t tempmask = 0xFFULL << (i * 8);
+        result &= ~tempmask;
+        result |= (computed & 0xFFULL) << (i * 8);
     }
-    uint64_t tempmask = 0xFFULL << (i * 8);
-    result &= ~tempmask;
-    result |= (computed & 0xFFULL) << (i * 8);
-}
-    setValue(thing, result);
+        setValue(thing, result);
 }
 
 uint64_t testFunction(uint64_t * input, uint8_t newValue, uint8_t position)
@@ -166,6 +166,11 @@ void prepareTransmission(things * thing, uint8_t * transmissionBuffer)
 {
     if(thing != NULL)
     {
+        computeValue(thing);
+        ValueUnion valueUnion;
+        valueUnion.value = getValue(thing);
+        setSignature(thing, computeSignature(valueUnion.bytes));
+
         memcpy(transmissionBuffer, &thing->signature, sizeof(thing->signature));
         memcpy(transmissionBuffer + sizeof(thing->signature), &thing->value, sizeof(thing->value));
         memset(transmissionBuffer + sizeof(thing->value) + sizeof(thing->signature), '\0', 1);
@@ -206,22 +211,7 @@ void main(void)
 
     uint8_t signatureArray[5] = {0};
     uint8_t transmissionBuffer[10];
-    for(int i = 0; i < 5; ++i)
-    {
-        computeValue(&arrayOfThings[i]);
-    }
-    
-    for(int i = 0; i < 5; ++i)
-    {
-        ValueUnion valueUnion;
-        valueUnion.value = getValue(&arrayOfThings[i]);
-        setSignature(&arrayOfThings[i], computeSignature(valueUnion.bytes));
-    }
-    //encrypt the signatures of the first 4 things
-    for(int i = 0; i < 5; ++i)
-    {
-        flipBits(&arrayOfThings[i].signature, sizeof(arrayOfThings[i].signature));
-    }
+
     prepareTransmission(&arrayOfThings[0], &transmissionBuffer[0]);
     printf("Transmission buffer for the first entry: ");
 
