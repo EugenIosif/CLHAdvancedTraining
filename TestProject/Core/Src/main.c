@@ -27,6 +27,7 @@
 #include <stdbool.h>
 
 #include "aes.h"
+#include "rsa_implementation.h"
 
 #include <stm32u5xx_hal_def.h>
 #include <stm32u5xx_hal_hash.h>
@@ -374,7 +375,8 @@ void executeDiffieHellman(void)
             {
                 uint32_t encryptedLedState = (uart_data_rx[1] << 24) | (uart_data_rx[2] << 16) | (uart_data_rx[3] << 8) | uart_data_rx[4];
                 UART_PRINT("\n\r Received Encrypted Message: %lu", encryptedLedState);
-                uint32_t decryptedLedState = XOR_Decrypt(encryptedLedState, sharedSecret);
+                // uint32_t decryptedLedState = XOR_Decrypt(encryptedLedState, sharedSecret);
+                uint32_t decryptedLedState = AES_ECB_encrypt(encryptedLedState, sharedSecret);
                 UART_PRINT("\n\r Decrypted Message: %lu", decryptedLedState);
                 if(decryptedLedState & 0x01)
                 {
@@ -601,7 +603,8 @@ int main(void)
       BSP_LED_Toggle(LED_BLUE);
       BSP_LED_Toggle(LED_RED);
 
-      computeFunctionSignature128B((uint32_t*)update_did_entry);
+//      computeFunctionSignature128B((uint32_t*)update_did_entry);
+      test_rsa_algorithm();
 
       /* ..... Perform your action ..... */
 
