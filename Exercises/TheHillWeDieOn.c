@@ -3,19 +3,6 @@
 #include <stdlib.h>
 #include <string.h>
 
-uint8_t getMask(things * thing, uint8_t position);
-OperationType getOperation(things * thing, uint8_t position);
-uint64_t getValue(things * thing);
-uint8_t getSignature(things * thing);
-void setMask(things * thing, uint8_t position, uint8_t mask);
-void setOperation(things * thing, uint8_t position, OperationType OP);
-void setValue(things * thing, uint64_t value);
-void setSignature(things * thing, uint8_t signature);
-void computeValue(things * thing);
-uint8_t computeSignature (uint8_t * bytes);
-void prepareTransmission(things * thing, uint8_t * transmissionBuffer);
-
-
 typedef union {
     uint64_t value;
     uint8_t bytes[8];
@@ -35,6 +22,18 @@ typedef struct things
     uint64_t value;
     uint8_t signature;
 } things;
+
+uint8_t getMask(things * thing, uint8_t position);
+OperationType getOperation(things * thing, uint8_t position);
+uint64_t getValue(things * thing);
+uint8_t getSignature(things * thing);
+void setMask(things * thing, uint8_t position, uint8_t mask);
+void setOperation(things * thing, uint8_t position, OperationType OP);
+void setValue(things * thing, uint64_t value);
+void setSignature(things * thing, uint8_t signature);
+void computeValue(things * thing);
+uint8_t computeSignature (uint8_t * bytes);
+void prepareTransmission(things * thing, uint8_t * transmissionBuffer);
 
 uint8_t getMask(things * thing, uint8_t position)
 {
@@ -222,7 +221,6 @@ void main(void)
                                     0
                             }};
 
-    uint8_t signatureArray[5] = {0};
     uint8_t transmissionBuffer[10];
 
     prepareTransmission(&arrayOfThings[0], &transmissionBuffer[0]);
