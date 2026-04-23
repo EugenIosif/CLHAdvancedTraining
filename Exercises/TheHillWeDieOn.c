@@ -21,7 +21,6 @@ typedef struct things
     OperationType OP[8];
     uint64_t value;
     uint8_t signature;
-    uint8_t transmissionBuffer[10];
 } things;
 
 uint8_t getMask(things * thing, uint8_t position)
@@ -163,13 +162,13 @@ void flipBits(uint8_t *data, size_t len)
     }    
 }
 
-void prepareTransmission(things * thing)
+void prepareTransmission(things * thing, uint8_t * transmissionBuffer)
 {
     if(thing != NULL)
     {
-        memcpy(thing->transmissionBuffer, &thing->signature, sizeof(thing->signature));
-        memcpy(thing->transmissionBuffer + sizeof(thing->signature), &thing->value, sizeof(thing->value));
-        memset(thing->transmissionBuffer + sizeof(thing->value) + sizeof(thing->signature), '\0', 1);
+        memcpy(transmissionBuffer, &thing->signature, sizeof(thing->signature));
+        memcpy(transmissionBuffer + sizeof(thing->signature), &thing->value, sizeof(thing->value));
+        memset(transmissionBuffer + sizeof(thing->value) + sizeof(thing->signature), '\0', 1);
     }
 }
 
@@ -178,39 +177,35 @@ void main(void)
     things arrayOfThings[5]= {{     {35, 132, 108, 174, 144, 241, 187, 235}, 
                                     {2, 1, 2, 2, 1, 1, 1, 3}, 
                                     41, 
-                                    0, 
-                                    {0}
+                                    0
                                 },
                                 {
                                     {219, 135, 62, 36, 13, 6, 71, 179},
                                     {0, 0, 1, 2, 0, 3, 2, 2}, 
                                     11942, 
-                                    0, 
-                                    {0}
+                                    0
                                 }, 
                                 {
                                     {200, 187, 166, 3, 125, 56, 31, 212},
                                     {3, 3, 3, 2, 1, 1, 1, 3},
                                     1869, 
-                                    0, 
-                                    {0}
+                                    0
                                 }, 
                                 {
                                     {150, 69, 19, 137, 28, 174, 32, 80},
                                     {1, 3, 1, 2, 3, 2, 2, 2}, 
                                     27644, 
-                                    0, 
-                                    {0}
+                                    0
                                 },
                                 {
                                     {173, 240, 149, 63, 177, 122, 244, 229},
                                     {0, 2, 1, 3, 0, 1, 2, 3}, 
                                     123456789, 
-                                    0, 
-                                    {0}
+                                    0
                             }};
 
     uint8_t signatureArray[5] = {0};
+    uint8_t transmissionBuffer[10];
     for(int i = 0; i < 5; ++i)
     {
         computeValue(&arrayOfThings[i]);
@@ -227,12 +222,12 @@ void main(void)
     {
         flipBits(&arrayOfThings[i].signature, sizeof(arrayOfThings[i].signature));
     }
-    prepareTransmission(&arrayOfThings[0]);
+    prepareTransmission(&arrayOfThings[0], &transmissionBuffer[0]);
     printf("Transmission buffer for the first entry: ");
 
     for(int i = 0; i < 10; ++i)
     {
-        printf("%02X ", arrayOfThings[0].transmissionBuffer[i]);
+        printf("%02X ", transmissionBuffer[i]);
     }
 
     
