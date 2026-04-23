@@ -25,6 +25,8 @@
 #include <stdint.h>
 #include <string.h>
 #include <stdbool.h>
+#include <stdlib.h>
+#include <string.h>
 
 #include <stm32u5xx_hal_def.h>
 /* USER CODE END Includes */
@@ -53,9 +55,10 @@
 COM_InitTypeDef BspCOMInit;
 __IO uint32_t BspButtonState = BUTTON_RELEASED;
 ADC_HandleTypeDef hadc1;
+
 HASH_HandleTypeDef hhash;
+
 SPI_HandleTypeDef hspi1;
-UART_HandleTypeDef huart1;
 
 /* USER CODE BEGIN PV */
 
@@ -70,26 +73,198 @@ static void MX_HASH_Init(void);
 static void MX_SPI1_Init(void);
 static void MX_ADC1_Init(void);
 /* USER CODE BEGIN PFP */
+typedef union {
+    uint64_t value;
+    uint8_t bytes[8];
+} ValueUnion;
 
-void encryptMessage(char* msg, char key, int len);
+typedef enum OperationType {
+    AND,
+    OR,
+    NOT,
+    XOR
+}OperationType;
 
+typedef struct things
+{
+    uint8_t mask[8];
+    OperationType OP[8];
+    uint64_t value;
+    uint8_t signature;
+} things;
+
+uint8_t getMask(things * thing, uint8_t position);
+OperationType getOperation(things * thing, uint8_t position);
+uint64_t getValue(things * thing);
+uint8_t getSignature(things * thing);
+void setMask(things * thing, uint8_t position, uint8_t mask);
+void setOperation(things * thing, uint8_t position, OperationType OP);
+void setValue(things * thing, uint64_t value);
+void setSignature(things * thing, uint8_t signature);
+void computeValue(things * thing);
+uint8_t computeSignature (uint8_t * bytes);
+void prepareTransmission(things * thing, uint8_t * transmissionBuffer);
+
+uint8_t getMask(things * thing, uint8_t position)
+{
+    if(thing != NULL && position < 8)
+    {
+        return thing->mask[position];
+    }
+    return 0;
+}
+
+OperationType getOperation(things * thing, uint8_t position)
+{
+    if(thing != NULL && position < 8)
+    {
+        return thing->OP[position];
+    }
+    return 0;
+}
+
+uint64_t getValue(things * thing)
+{
+    if(thing != NULL)
+    {
+        return thing->value;
+    }
+    return 0;
+}
+
+uint8_t getSignature(things * thing)
+{
+    if(thing != NULL)
+    {
+        return thing->signature;
+    }
+    return 0;
+}
+
+void setMask(things * thing, uint8_t position, uint8_t mask)
+{
+    if(thing != NULL && position < 8)
+    {
+        thing->mask[position] = mask;
+    }
+}
+
+void setOperation(things * thing, uint8_t position, OperationType OP)
+{
+    if(thing != NULL && position < 8)
+    {
+        if(OP > 3)
+        {
+            printf("Invalid operation type");
+            return;
+        }
+        thing->OP[position] = OP;
+    }
+}
+
+void setValue(things * thing, uint64_t value)
+{
+    if(thing != NULL)
+    {
+        thing->value = value;
+    }
+}
+
+void setSignature(things * thing, uint8_t signature)
+{
+    if(thing != NULL)
+    {
+        thing->signature = signature;
+    }
+}
+
+void computeValue(things * thing)
+{
+    uint64_t result = 0;
+    for (int i = 0; i<8 ; ++i)
+    {
+        uint64_t byte = (getValue(thing) >> (i * 8)) & 0xFF;
+        uint8_t mask = getMask (thing, i);
+        OperationType op = getOperation(thing, i);
+        uint64_t computed;
+        switch (op )
+        {
+            case AND: computed = byte & mask; break;
+            case OR: computed = byte | mask; break;
+            case NOT: computed = ~byte; break;
+            case XOR: computed = byte ^ mask; break;
+        }
+        uint64_t tempmask = 0xFFULL << (i * 8);
+        result &= ~tempmask;
+        result |= (computed & 0xFFULL) << (i * 8);
+    }
+        setValue(thing, result);
+}
+
+uint64_t testFunction(uint64_t * input, uint8_t newValue, uint8_t position)
+{
+    uint64_t result = *input;
+    // printf("Original value: 0x%llX\n", result);
+    uint64_t tempmask = (0xFFULL << (position * 8));
+    // printf("temp mask: 0x%llX\n", tempmask);
+    result &= ~tempmask;
+    // printf("Result after masking: 0x%llX\n", result);
+
+    result |= (newValue & 0xFFULL) << (position * 8);
+    // printf("Result after setting new value: 0x%llX\n", result);
+    return result;
+}
+
+uint8_t computeSignature (uint8_t * bytes)
+{
+    if(bytes != NULL)
+    {
+        uint8_t result = 0;
+        for(int i = 0; i < 8; ++i)
+        {
+            // result ^= *(bytes + i); //Equivalent
+
+            result ^= bytes[i]; //Equivalent
+
+            // result ^= *bytes; //Equivalent
+            // bytes++;
+        }
+        return result;
+    }
+}
+
+void flipBits(uint8_t *data, size_t len)
+{
+    if(data!= NULL && len > 0)
+    {
+        for (size_t i = 0; i < len; i++)
+        {
+            data[i] ^= 0xFF; // Flip all bits in the byte
+        }
+    }
+}
+
+void prepareTransmission(things * thing, uint8_t * transmissionBuffer)
+{
+    if(thing != NULL)
+    {
+        computeValue(thing);
+        ValueUnion valueUnion;
+        valueUnion.value = getValue(thing);
+        setSignature(thing, computeSignature(valueUnion.bytes));
+
+        memcpy(transmissionBuffer, &thing->signature, sizeof(thing->signature));
+        memcpy(transmissionBuffer + sizeof(thing->signature), &thing->value, sizeof(thing->value));
+        memset(transmissionBuffer + sizeof(thing->value) + sizeof(thing->signature), '\0', 1);
+    }
+}
 /* USER CODE END PFP */
 
 /* Private user code ---------------------------------------------------------*/
 /* USER CODE BEGIN 0 */
 
-void encryptMessage(char* msg, char key, int len)
-{
-
-}
 /* USER CODE END 0 */
-void encryptMessage(char* msg, char key, int len)
-{
-    for (int i = 0; i < len; i++)
-    {
-        msg[i] ^= key;
-    }
-}
+
 /**
   * @brief  The application entry point.
   * @retval int
@@ -151,6 +326,27 @@ int main(void)
 
   /* USER CODE BEGIN BSP */
 
+      things arrayOfThings[5]= {{     {35, 132, 108, 174, 144, 241, 187, 235},
+                                      {2, 1, 2, 2, 1, 1, 1, 3},
+                                      41,
+                                      0
+                                  }};
+
+      uint8_t transmissionBuffer[10];
+
+      prepareTransmission(&arrayOfThings[0], &transmissionBuffer[0]);
+      printf("Transmission buffer for the first entry: ");
+
+      for(int i = 0; i < 10; ++i)
+      {
+          printf("%02X ", transmissionBuffer[i]);
+      }
+        flipBits(transmissionBuffer, sizeof(transmissionBuffer));
+      printf("\nTransmission buffer after flipping bits: ");
+      for(int i = 0; i < 10; ++i)
+      {
+          printf("%02X ", transmissionBuffer[i]);
+      }
   /* -- Sample board code to send message over COM1 port ---- */
 
   printf("Welcome to STM32 world !\n\r");
@@ -169,8 +365,7 @@ int main(void)
   /* Infinite loop */
   /* USER CODE BEGIN WHILE */
 
-  char msg[17] = "SECRET_PASS12345\0";
-  char key = 0xCD;
+
 
   while (1)
   {
@@ -184,16 +379,12 @@ int main(void)
       BSP_LED_Toggle(LED_BLUE);
       BSP_LED_Toggle(LED_RED);
 
-      encryptMessage(&msg[0], key, MSGLEN);
-      printf("Encrypted message: %s\n\r", msg);
-
-      for(int i = 0; i < MSGLEN; i++)
-      {
-          printf("%02X ", (unsigned char)msg[i]);
-      }
-      printf("\n\r");
+    printf("yo");
 	    /* ..... Perform your action ..... */
     }
+
+
+
     /* USER CODE END WHILE */
 
     /* USER CODE BEGIN 3 */
