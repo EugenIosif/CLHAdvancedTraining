@@ -91,7 +91,7 @@ static void MX_SPI1_Init(void);
 static void MX_ADC1_Init(void);
 /* USER CODE BEGIN PFP */
 
-void encryptMessage(char* msg, char key, int len);
+void encryptMessage(uint8_t* msg, uint8_t key, int len);
 uint8_t getMask(things * thing, uint8_t position);
 OperationType getOperation(things * thing, uint8_t position);
 uint64_t getValue(things * thing);
@@ -108,7 +108,7 @@ void prepareTransmission(things * thing, uint8_t * transmissionBuffer);
 /* Private user code ---------------------------------------------------------*/
 /* USER CODE BEGIN 0 */
 
-void encryptMessage(char* msg, char key, int len)
+void encryptMessage(uint8_t* msg, uint8_t key, int len)
 {
   if(msg != NULL && len > 0 && len <= MSGLEN)
   {
@@ -201,7 +201,7 @@ void computeValue(things * thing)
         uint8_t mask = getMask (thing, i);
         OperationType op = getOperation(thing, i);
         uint64_t computed;
-        switch (op )
+        switch (op)
         {
             case AND: computed = byte & mask; break;
             case OR: computed = byte | mask; break;
@@ -241,14 +241,17 @@ void prepareTransmission(things * thing, uint8_t * transmissionBuffer)
 {
     if(thing != NULL)
     {
-        computeValue(thing);
+      things tempThing;
+      memcpy(&tempThing, thing, sizeof(things));
+        memset(transmissionBuffer, '\0', 10);
+        computeValue(&tempThing);
         ValueUnion valueUnion;
-        valueUnion.value = getValue(thing);
-        setSignature(thing, computeSignature(valueUnion.bytes));
+        valueUnion.value = getValue(&tempThing);
+        setSignature(&tempThing, computeSignature(valueUnion.bytes));
 
-        memcpy(transmissionBuffer, &thing->signature, sizeof(thing->signature));
-        memcpy(transmissionBuffer + sizeof(thing->signature), &thing->value, sizeof(thing->value));
-        memset(transmissionBuffer + sizeof(thing->value) + sizeof(thing->signature), '\0', 1);
+        memcpy(transmissionBuffer, &tempThing.signature, sizeof(tempThing.signature));
+        memcpy(transmissionBuffer + sizeof(tempThing.signature), &tempThing.value, sizeof(tempThing.value));
+        memset(transmissionBuffer + sizeof(tempThing.value) + sizeof(tempThing.signature), '\0', 1);
     }
 }
 
@@ -317,7 +320,7 @@ int main(void)
 
   /* -- Sample board code to send message over COM1 port ---- */
 
-  printf("Welcome to STM32 world !\n\r");
+  printf("\n\rWelcome to STM32 world !\n\r");
 
   // char buffer[100] = {0};
   // sprintf(buffer, "Welcome to STM32 world !\n\r");
@@ -333,8 +336,15 @@ int main(void)
   /* Infinite loop */
   /* USER CODE BEGIN WHILE */
 
-  char msg[17] = "SECRET_P\0ASS12345";
-  char key = 0xCD;
+  // char msg[17] = "SECRET_P\0ASS12345";
+  char key = 0xAA;
+
+  uint8_t transmissionBuffer[10];
+  things lonelyThing =  {  {35, 132, 108, 174, 144, 241, 187, 235}, 
+                           {2, 1, 2, 2, 1, 1, 1, 3}, 
+                           41, 
+                           0
+                        };
 
   while (1)
   {
@@ -348,8 +358,15 @@ int main(void)
       BSP_LED_Toggle(LED_BLUE);
       BSP_LED_Toggle(LED_RED);
 
-      encryptMessage(&msg[0], key, MSGLEN);
-      printf("Encrypted message: %s\n\r", msg);
+      prepareTransmission(&lonelyThing, transmissionBuffer);
+      
+      encryptMessage(&transmissionBuffer[1], key, 9); // Encrypt the value part of the transmission buffer, leaving the signature byte unencrypted
+
+      for(int i = 0; i < sizeof(transmissionBuffer); i++)
+      {
+        printf("%02x", transmissionBuffer[i]);
+      }
+      printf("\n\n\r");
 
 	    /* ..... Perform your action ..... */
     }
