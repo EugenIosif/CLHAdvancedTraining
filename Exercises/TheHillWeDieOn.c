@@ -141,8 +141,12 @@ uint8_t computeSignature (uint8_t * bytes)
         uint8_t result = 0;
         for(int i = 0; i < 8; ++i)
         {
-            result ^= *bytes;
-            bytes++;
+            // result ^= *(bytes + i); //Equivalent
+
+            result ^= bytes[i]; //Equivalent
+
+            // result ^= *bytes; //Equivalent
+            // bytes++;
         }
         return result;
     }    
