@@ -3,8 +3,6 @@
 // --- Forward Declarations ---
 
 // Test Function
-void test_rsa_algorithm(void);
-
 
 // --- Helper Functions ---
 
@@ -189,7 +187,7 @@ void rsa_encrypt(const uint8_t message[8], uint8_t ciphertext[8], const uint8_t 
     uint64_t n = u8_array_to_u64(n_key);
 
     if (m >= n) {
-        printf("Error: Message is larger than or equal to modulus n. Cannot encrypt.\n");
+        printf("Error: Message is larger than or equal to modulus n. Cannot encrypt.\n\r");
         return;
     }
 
@@ -211,7 +209,7 @@ void print_key_array(const char* name, const uint8_t key[8]) {
     for (int i = 7; i >= 0; i--) {
         printf("%02X", key[i]);
     }
-    printf("\n");
+    printf("\n\r");
 }
 
 void test_rsa_algorithm(void) {
@@ -222,12 +220,12 @@ void test_rsa_algorithm(void) {
     uint8_t e[8] = {0x01, 0x00, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00};
     uint8_t d[8] = {0x5D, 0x2D, 0xEE, 0xE2, 0xE6, 0x97, 0x1B, 0x00};
 
-    printf("Generating 64-bit RSA keys...\n");
+    printf("Generating 64-bit RSA keys...\n\r");
     // generate_and_check_rsa_keys(n, e, d);
 
     uint64_t n_val = u8_array_to_u64(n);
 
-    printf("Keys generated and validated.\n");
+    printf("Keys generated and validated.\n\r");
     // print_key_array("n", n);
     // print_key_array("e", e);
     // print_key_array("d", d);
@@ -235,11 +233,11 @@ void test_rsa_algorithm(void) {
     for (int i = 7; i >= 0; i--) {
         printf("%02X", n[i]);
     }
-    printf("\n");
+    printf("\n\r");
     for (int i = 7; i >= 0; i--) {
         printf("%02X", e[i]);
     }
-    printf("\n");
+    printf("\n\r");
     for (int i = 7; i >= 0; i--) {
         printf("%02X", d[i]);
     }
@@ -251,28 +249,28 @@ void test_rsa_algorithm(void) {
     // A sample 64-bit message. Must be less than n.
     uint64_t original_message_val = 0x123456789ABCDEF0;
     // if (original_message_val >= n_val) {
-    //     printf("\nWarning: Sample message is too large for the generated n. Using a smaller message.\n");
+    //     printf("\n\rWarning: Sample message is too large for the generated n. Using a smaller message.\n\r");
         original_message_val = n_val / 2;
     // }
     u64_to_u8_array(original_message_val, original_message);
 
-    printf("\nOriginal message (decimal): %llu\n", original_message_val);
+    printf("\n\rOriginal message (decimal): %llu\n\r", original_message_val);
     print_key_array("Original message", original_message);
 
-    printf("\nEncrypting...\n");
+    printf("\n\rEncrypting...\n\r");
     rsa_encrypt(original_message, encrypted_message, e, n);
     print_key_array("Encrypted message", encrypted_message);
 
-    printf("\nDecrypting...\n");
+    printf("\n\rDecrypting...\n\r");
     rsa_decrypt(encrypted_message, decrypted_message, d, n);
     uint64_t decrypted_val = u8_array_to_u64(decrypted_message);
     print_key_array("Decrypted message", decrypted_message);
 
     // Verification
     if (original_message_val == decrypted_val) {
-        printf("\nSUCCESS: Decrypted message matches the original.\n");
+        printf("\n\rSUCCESS: Decrypted message matches the original.\n\r");
     } else {
-        printf("\nFAILURE: Decrypted message does NOT match the original.\n");
+        printf("\n\rFAILURE: Decrypted message does NOT match the original.\n\r");
     }
 }
 
