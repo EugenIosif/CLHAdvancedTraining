@@ -38,7 +38,7 @@ Core/Src/main.o: ../Core/Src/main.c ../Core/Inc/main.h \
  ../Drivers/BSP/STM32U5xx_Nucleo/stm32u5xx_nucleo.h \
  ../Core/Inc/stm32u5xx_nucleo_conf.h \
  ../Drivers/BSP/STM32U5xx_Nucleo/stm32u5xx_nucleo_errno.h \
- ../Core/Inc/aes.h \
+ ../Core/Inc/aes.h ../Core/Inc/rsa_implementation.h \
  ../Drivers/STM32U5xx_HAL_Driver/Inc/stm32u5xx_hal_def.h
 ../Core/Inc/main.h:
 ../Drivers/STM32U5xx_HAL_Driver/Inc/stm32u5xx_hal.h:
@@ -81,4 +81,5 @@ Core/Src/main.o: ../Core/Src/main.c ../Core/Inc/main.h \
 ../Core/Inc/stm32u5xx_nucleo_conf.h:
 ../Drivers/BSP/STM32U5xx_Nucleo/stm32u5xx_nucleo_errno.h:
 ../Core/Inc/aes.h:
+../Core/Inc/rsa_implementation.h:
 ../Drivers/STM32U5xx_HAL_Driver/Inc/stm32u5xx_hal_def.h:

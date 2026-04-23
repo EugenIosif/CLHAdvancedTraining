@@ -1,0 +1,13 @@
+../Core/Src/rsa_implementation.c:14:6:u64_to_u8_array	2
+../Core/Src/rsa_implementation.c:23:10:u8_array_to_u64	2
+../Core/Src/rsa_implementation.c:36:10:modular_mul	5
+../Core/Src/rsa_implementation.c:54:10:modular_pow	3
+../Core/Src/rsa_implementation.c:68:10:gcd	2
+../Core/Src/rsa_implementation.c:81:9:mod_inverse	4
+../Core/Src/rsa_implementation.c:105:6:is_prime	14
+../Core/Src/rsa_implementation.c:134:10:generate_prime	2
+../Core/Src/rsa_implementation.c:146:6:generate_and_check_rsa_keys	5
+../Core/Src/rsa_implementation.c:186:6:rsa_encrypt	2
+../Core/Src/rsa_implementation.c:200:6:rsa_decrypt	1
+../Core/Src/rsa_implementation.c:209:6:print_key_array	2
+../Core/Src/rsa_implementation.c:217:6:test_rsa_algorithm	5

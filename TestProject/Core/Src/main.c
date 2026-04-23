@@ -27,6 +27,7 @@
 #include <stdbool.h>
 
 #include "aes.h"
+#include "rsa_implementation.h"
 
 #include <stm32u5xx_hal_def.h>
 /* USER CODE END Includes */
