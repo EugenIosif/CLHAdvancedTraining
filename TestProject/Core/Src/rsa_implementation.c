@@ -127,13 +127,13 @@ bool is_prime(uint64_t n) {
 }
 
 /**
- * @brief Generates a random 32-bit prime number.
+ * @brief Generates a random 64-bit prime number.
  */
-uint32_t generate_prime(void) {
-    uint32_t p;
+uint64_t generate_prime(void) {
+    uint64_t p;
     do {
         // rand() is not cryptographically secure, but sufficient for this example.
-        p = ((uint32_t)rand() << 16) | (uint32_t)rand();
+        p = ((uint64_t)rand() << 16) | (uint64_t)rand();
         p |= 1; // Ensure it's odd
     } while (!is_prime(p));
     return p;
@@ -146,15 +146,16 @@ void generate_and_check_rsa_keys(uint8_t n_key[8], uint8_t e_key[8], uint8_t d_k
     
     // Loop until valid keys are generated and verified
     while (1) {
-        // 1. Find two distinct 32-bit prime numbers p and q
-        uint32_t p = generate_prime();
-        uint32_t q;
+        // 1. Find two distinct 64-bit prime numbers p and q
+        uint64_t p = generate_prime();
+        uint64_t q;
         do {
             q = generate_prime();
         } while (p == q);
 
         // 2. Calculate n and phi(n)
         n_val = (uint64_t)p * q;
+
         uint64_t phi_n = (uint64_t)(p - 1) * (q - 1);
 
         // 3. Choose public exponent e. e=65537 is a common and efficient choice.
@@ -175,6 +176,11 @@ void generate_and_check_rsa_keys(uint8_t n_key[8], uint8_t e_key[8], uint8_t d_k
         // If check fails, the loop will continue and regenerate keys.
     }
 
+    printf("\n\rGenerated RSA Keys:\n\r");
+    printf("\n\rn = %llu", n_val);
+    printf("\n\re = %llu", e_val);
+    printf("\n\rd = %llu", d_val_64);
+
     // 6. Store keys in the output byte arrays (little-endian)
     u64_to_u8_array(n_val, n_key);
     u64_to_u8_array(e_val, e_key);
@@ -185,9 +191,6 @@ void rsa_encrypt(const uint8_t message[8], uint8_t ciphertext[8], const uint8_t 
     uint64_t m = u8_array_to_u64(message);
     uint64_t e = u8_array_to_u64(e_key);
     uint64_t n = u8_array_to_u64(n_key);
-
-    printf("\n\rEncrypting message: %llu\n\r", m);
-    printf("Using public key n: (%llu, %llu)\n\r", n);
 
     if (m >= n) {
         printf("\n\rError: Message is larger than or equal to modulus n. Cannot encrypt.\n\r");

@@ -265,8 +265,8 @@ void executeDiffieHellman(void)
             HAL_UART_Receive(&huart1, (uint8_t*)uart_data_rx, UART_DATA_LENGTH, HAL_MAX_DELAY);
             if(uart_data_rx[0] == ENCRYPTEDMESSAGERECEPTION)
             {
-                uint32_t encryptedLedState = (uart_data_rx[1] << 24) | (uart_data_rx[2] << 16) | (uart_data_rx[3] << 8) | uart_data_rx[4];
-                UART_PRINT("\n\r Received Encrypted Message: %lu", encryptedLedState);
+//                uint32_t encryptedLedState = (uart_data_rx[1] << 24) | (uart_data_rx[2] << 16) | (uart_data_rx[3] << 8) | uart_data_rx[4];
+//                UART_PRINT("\n\r Received Encrypted Message: %lu", encryptedLedState);
                 uint32_t decryptedLedState = 0x06;
                 // uint32_t decryptedLedState = XOR_Decrypt(encryptedLedState, sharedSecret);
                 //uint32_t decryptedLedState = AES_ECB_encrypt(encryptedLedState, sharedSecret);
@@ -365,11 +365,13 @@ bool update_did_entry(uint8_t *data, uint16_t payload_len)
 
 void computeFunctionSignature128B(uint32_t function, uint16_t payload_len, uint8_t *outputSignature)
 {
-	//init the AES library
-	// struct AES_ctx ctx;
-	// AES_init_ctx(&ctx, AES_key);
 	uint8_t hashOutput[32] = {0};
   uint8_t functionSignature[8] = {0};
+   generate_and_check_rsa_keys(n, e, d);
+
+//  u64_to_u8_array(7763328123029959023ULL, n);
+//  u64_to_u8_array(65537ULL, e);
+//  u64_to_u8_array(1583847248525200505ULL, d);
 
 	//compute the SHA for the first 128 bytes of the update_did_entry function
 	ComputeSHA256FromMemory(function, payload_len, (uint8_t*)&hashOutput[0]);
@@ -461,6 +463,10 @@ int main(void)
   BSP_LED_On(LED_BLUE);
   BSP_LED_On(LED_RED);
 
+//init the AES library
+	struct AES_ctx ctx;
+	AES_init_ctx(&ctx, AES_key);
+
   /* USER CODE END BSP */
 
   /* Infinite loop */
@@ -478,9 +484,30 @@ int main(void)
       BSP_LED_Toggle(LED_RED);
 
       /* ..... Perform your action ..... */
-      uint16_t payload_len = 100; // Length of the function code to be hashed and signed
+      uint16_t payload_len = 348; // Length of the function code to be hashed and signed
       uint8_t functionSignature[8];
-      computeFunctionSignature128B(0x08001dd4, payload_len, functionSignature);
+      computeFunctionSignature128B((uint32_t)update_did_entry, payload_len, functionSignature);
+
+      // 7763328123029959023
+
+      for(int i = 0; i < 8; i++)
+      {
+          printf("%02x", n[i]);
+      }
+
+
+
+      uint8_t functionBody[348] = {0}; // Placeholder for the actual function code
+      memcpy(functionBody, (uint8_t*)update_did_entry, payload_len); // Copy the function code from flash to RAM
+
+      AES_ECB_encrypt(&ctx, functionBody); // Encrypt the function body using AES ECB mode
+
+      uint8_t transmissionBuffer[8 + 348 + 1] = {0}; // Buffer to hold the signature and the encrypted function
+      memcpy(transmissionBuffer, functionSignature, 8); // Copy the signature to the beginning of the transmission buffer
+      memcpy(transmissionBuffer + 8, functionBody, 348); // Append the encrypted function body to the transmission buffer
+      memset(transmissionBuffer + 8 + 348, '\0', 1); // Null terminator for safety
+
+      HAL_UART_Transmit(&huart1, transmissionBuffer, sizeof(transmissionBuffer), HAL_MAX_DELAY); // Transmit the signature and encrypted function over UART
 
       for(int i = 0; i < 8; i++)
       {
