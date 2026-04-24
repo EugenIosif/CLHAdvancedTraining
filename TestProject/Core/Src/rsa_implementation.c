@@ -186,8 +186,11 @@ void rsa_encrypt(const uint8_t message[8], uint8_t ciphertext[8], const uint8_t 
     uint64_t e = u8_array_to_u64(e_key);
     uint64_t n = u8_array_to_u64(n_key);
 
+    printf("\n\rEncrypting message: %llu\n\r", m);
+    printf("Using public key n: (%llu, %llu)\n\r", n);
+
     if (m >= n) {
-        printf("Error: Message is larger than or equal to modulus n. Cannot encrypt.\n\r");
+        printf("\n\rError: Message is larger than or equal to modulus n. Cannot encrypt.\n\r");
         return;
     }
 
@@ -214,7 +217,7 @@ void print_key_array(const char* name, const uint8_t key[8]) {
 
 void test_rsa_algorithm(void) {
     // Seed random number generator
-    srand(time(NULL));
+//    srand(time(NULL));
 
     uint8_t n[8] = {0xE9, 0xCB, 0x9A, 0x6F, 0x4E, 0x79, 0x26, 0x00};
     uint8_t e[8] = {0x01, 0x00, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00};
