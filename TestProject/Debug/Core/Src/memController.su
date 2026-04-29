@@ -1,0 +1,4 @@
+../Core/Src/memController.c:6:13:readFromMemory	16	static
+../Core/Src/memController.c:14:13:writeToMemory	16	static
+../Core/Src/memController.c:22:9:replaceWithEncryptedData	232	static
+../Core/Src/memController.c:48:11:encryptDataWithPadding	208	static

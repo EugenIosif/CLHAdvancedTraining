@@ -27,6 +27,8 @@
 #include <stdbool.h>
 
 #include <stm32u5xx_hal_def.h>
+
+#include "memController.h"
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -58,7 +60,6 @@ typedef struct things
 /* USER CODE BEGIN PD */
 
 #define MSGLEN 17
-
 /* USER CODE END PD */
 
 /* Private macro -------------------------------------------------------------*/
@@ -337,14 +338,14 @@ int main(void)
   /* USER CODE BEGIN WHILE */
 
   // char msg[17] = "SECRET_P\0ASS12345";
-  char key = 0xAA;
-
-  uint8_t transmissionBuffer[10];
-  things lonelyThing =  {  {35, 132, 108, 174, 144, 241, 187, 235}, 
-                           {2, 1, 2, 2, 1, 1, 1, 3}, 
-                           41, 
-                           0
-                        };
+//  char key = 0xAA;
+//
+//  uint8_t transmissionBuffer[10];
+//  things lonelyThing =  {  {35, 132, 108, 174, 144, 241, 187, 235},
+//                           {2, 1, 2, 2, 1, 1, 1, 3},
+//                           41,
+//                           0
+//                        };
 
   while (1)
   {
@@ -358,15 +359,18 @@ int main(void)
       BSP_LED_Toggle(LED_BLUE);
       BSP_LED_Toggle(LED_RED);
 
-      prepareTransmission(&lonelyThing, transmissionBuffer);
-      
-      encryptMessage(&transmissionBuffer[1], key, 9); // Encrypt the value part of the transmission buffer, leaving the signature byte unencrypted
+      uint8_t inData[4] = {0x01, 0x02, 0x03, 0x04};
+      uint8_t outData[16] = {0};
 
-      for(int i = 0; i < sizeof(transmissionBuffer); i++)
+
+      memcpy(outData, encryptDataWithPadding(4, inData), 16);
+
+      for(int i = 0; i<16; i++)
       {
-        printf("%02x", transmissionBuffer[i]);
+    	  printf("%02x ", outData[i]);
       }
-      printf("\n\n\r");
+      printf("\n\r");
+
 
 	    /* ..... Perform your action ..... */
     }
