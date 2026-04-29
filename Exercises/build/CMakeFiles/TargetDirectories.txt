@@ -1,0 +1,3 @@
+D:/CLH/04_Git/Test/Exercises/build/CMakeFiles/TxRxApplication.dir
+D:/CLH/04_Git/Test/Exercises/build/CMakeFiles/edit_cache.dir
+D:/CLH/04_Git/Test/Exercises/build/CMakeFiles/rebuild_cache.dir
