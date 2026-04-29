@@ -3,7 +3,7 @@
 
 #define BLOCKLEN 16
 
-static void readFromMemory(uint8_t * returnVector, uint8_t size, uint8_t startAddress)
+void readFromMemory(uint8_t * returnVector, uint8_t size, uint8_t startAddress)
 {
     if(returnVector != NULL && size > 0 && (startAddress + size) <= sizeof(memoryLikeBuffer))
     {
@@ -11,7 +11,7 @@ static void readFromMemory(uint8_t * returnVector, uint8_t size, uint8_t startAd
     }
 }
 
-static void writeToMemory(uint8_t * sourceBuffer, uint8_t size, uint8_t startAddress)
+void writeToMemory(uint8_t * sourceBuffer, uint8_t size, uint8_t startAddress)
 {
     if(sourceBuffer != NULL && size > 0 && (startAddress + size) <= sizeof(memoryLikeBuffer))
     {
@@ -70,8 +70,8 @@ uint8_t * encryptDataWithPadding(uint8_t size, uint8_t * buffer)
   return returnBuffer;
 }
 
-void main(void)
-{
-  uint8_t dataBuffer[8] = {0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08};
-  uint8_t * encryptedData = encryptDataWithPadding(8, dataBuffer);
-}
+// void main(void)
+// {
+//   uint8_t dataBuffer[8] = {0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08};
+//   uint8_t * encryptedData = encryptDataWithPadding(8, dataBuffer);
+// }

@@ -1,4 +1,4 @@
-../Core/Src/memController.c:6:13:readFromMemory	4
-../Core/Src/memController.c:14:13:writeToMemory	4
-../Core/Src/memController.c:22:9:replaceWithEncryptedData	4
-../Core/Src/memController.c:48:11:encryptDataWithPadding	3
+../Core/Src/memController.c:17:6:readFromMemory	4
+../Core/Src/memController.c:25:6:writeToMemory	4
+../Core/Src/memController.c:33:9:replaceWithEncryptedData	4
+../Core/Src/memController.c:59:11:encryptDataWithPadding	3

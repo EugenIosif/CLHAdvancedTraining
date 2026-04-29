@@ -34,26 +34,6 @@
 /* Private typedef -----------------------------------------------------------*/
 /* USER CODE BEGIN PTD */
 
-typedef union {
-    uint64_t value;
-    uint8_t bytes[8];
-} ValueUnion;
-
-typedef enum OperationType {
-    AND, 
-    OR, 
-    NOT,
-    XOR
-}OperationType;
-
-typedef struct things
-{
-    uint8_t mask[8];
-    OperationType OP[8];
-    uint64_t value;
-    uint8_t signature;
-} things;
-
 /* USER CODE END PTD */
 
 /* Private define ------------------------------------------------------------*/
@@ -92,129 +72,12 @@ static void MX_SPI1_Init(void);
 static void MX_ADC1_Init(void);
 /* USER CODE BEGIN PFP */
 
-void encryptMessage(uint8_t* msg, uint8_t key, int len);
-uint8_t getMask(things * thing, uint8_t position);
-OperationType getOperation(things * thing, uint8_t position);
-uint64_t getValue(things * thing);
-uint8_t getSignature(things * thing);
-void setMask(things * thing, uint8_t position, uint8_t mask);
-void setOperation(things * thing, uint8_t position, OperationType OP);
-void setValue(things * thing, uint64_t value);
-void setSignature(things * thing, uint8_t signature);
-void computeValue(things * thing);
 uint8_t computeSignature (uint8_t * bytes);
-void prepareTransmission(things * thing, uint8_t * transmissionBuffer);
+//void prepareTransmission(things * thing, uint8_t * transmissionBuffer);
 /* USER CODE END PFP */
 
 /* Private user code ---------------------------------------------------------*/
 /* USER CODE BEGIN 0 */
-
-void encryptMessage(uint8_t* msg, uint8_t key, int len)
-{
-  if(msg != NULL && len > 0 && len <= MSGLEN)
-  {
-    for(int i = 0; (*msg+i != '\0' && i < len); i++)
-    {
-      msg[i] ^= key; // XOR encryption
-    }
-  }
-}
-
-uint8_t getMask(things * thing, uint8_t position)
-{
-    if(thing != NULL && position < 8)
-    {
-        return thing->mask[position];
-    }
-    return 0;
-}
-
-OperationType getOperation(things * thing, uint8_t position)
-{
-    if(thing != NULL && position < 8)
-    {
-        return thing->OP[position];
-    }
-    return 0;
-}
-
-uint64_t getValue(things * thing)
-{
-    if(thing != NULL)
-    {
-        return thing->value;
-    }
-    return 0;
-}
-
-uint8_t getSignature(things * thing)
-{
-    if(thing != NULL)
-    {
-        return thing->signature;
-    }
-    return 0;
-}
-
-void setMask(things * thing, uint8_t position, uint8_t mask)
-{
-    if(thing != NULL && position < 8)
-    {
-        thing->mask[position] = mask;
-    }
-}
-
-void setOperation(things * thing, uint8_t position, OperationType OP)
-{
-    if(thing != NULL && position < 8)
-    {
-        if(OP > 3)
-        {
-            printf("Invalid operation type");
-            return;
-        }
-        thing->OP[position] = OP;
-    }
-}
-
-void setValue(things * thing, uint64_t value)
-{
-    if(thing != NULL)
-    {
-        thing->value = value;
-    }
-}
-
-void setSignature(things * thing, uint8_t signature)
-{
-    if(thing != NULL)
-    {
-        thing->signature = signature;
-    }
-}
-
-void computeValue(things * thing)
-{
-    uint64_t result = 0;
-    for (int i = 0; i<8 ; ++i)
-    {
-        uint64_t byte = (getValue(thing) >> (i * 8)) & 0xFF; 
-        uint8_t mask = getMask (thing, i);
-        OperationType op = getOperation(thing, i);
-        uint64_t computed;
-        switch (op)
-        {
-            case AND: computed = byte & mask; break;
-            case OR: computed = byte | mask; break;
-            case NOT: computed = ~byte; break;
-            case XOR: computed = byte ^ mask; break;
-        }
-        uint64_t tempmask = 0xFFULL << (i * 8);
-        result &= ~tempmask;
-        result |= (computed & 0xFFULL) << (i * 8);
-    }
-        setValue(thing, result);
-}
 
 uint8_t computeSignature (uint8_t * bytes)
 {
@@ -238,23 +101,23 @@ uint8_t computeSignature (uint8_t * bytes)
     }
 }
 
-void prepareTransmission(things * thing, uint8_t * transmissionBuffer)
-{
-    if(thing != NULL)
-    {
-      things tempThing;
-      memcpy(&tempThing, thing, sizeof(things));
-        memset(transmissionBuffer, '\0', 10);
-        computeValue(&tempThing);
-        ValueUnion valueUnion;
-        valueUnion.value = getValue(&tempThing);
-        setSignature(&tempThing, computeSignature(valueUnion.bytes));
+ void prepareTransmission(things * thing, uint8_t * transmissionBuffer)
+ {
+     if(thing != NULL)
+     {
+       things tempThing;
+       memcpy(&tempThing, thing, sizeof(things));
+         memset(transmissionBuffer, '\0', 10);
+         computeValue(&tempThing);
+         ValueUnion valueUnion;
+         valueUnion.value = getValue(&tempThing);
+         setSignature(&tempThing, computeSignature(valueUnion.bytes));
 
-        memcpy(transmissionBuffer, &tempThing.signature, sizeof(tempThing.signature));
-        memcpy(transmissionBuffer + sizeof(tempThing.signature), &tempThing.value, sizeof(tempThing.value));
-        memset(transmissionBuffer + sizeof(tempThing.value) + sizeof(tempThing.signature), '\0', 1);
-    }
-}
+         memcpy(transmissionBuffer, &tempThing.signature, sizeof(tempThing.signature));
+         memcpy(transmissionBuffer + sizeof(tempThing.signature), &tempThing.value, sizeof(tempThing.value));
+         memset(transmissionBuffer + sizeof(tempThing.value) + sizeof(tempThing.signature), '\0', 1);
+     }
+ }
 
 /* USER CODE END 0 */
 
@@ -337,16 +200,6 @@ int main(void)
   /* Infinite loop */
   /* USER CODE BEGIN WHILE */
 
-  // char msg[17] = "SECRET_P\0ASS12345";
-//  char key = 0xAA;
-//
-//  uint8_t transmissionBuffer[10];
-//  things lonelyThing =  {  {35, 132, 108, 174, 144, 241, 187, 235},
-//                           {2, 1, 2, 2, 1, 1, 1, 3},
-//                           41,
-//                           0
-//                        };
-
   while (1)
   {
     /* -- Sample board code for User push-button in interrupt mode ---- */
@@ -361,7 +214,6 @@ int main(void)
 
       uint8_t inData[4] = {0x01, 0x02, 0x03, 0x04};
       uint8_t outData[16] = {0};
-
 
       memcpy(outData, encryptDataWithPadding(4, inData), 16);
 
