@@ -62,7 +62,8 @@ uint8_t * encryptDataWithPadding(uint8_t size, uint8_t * buffer)
   struct AES_ctx ctx;
   AES_init_ctx(&ctx, AES_key);
 
-  static uint8_t returnBuffer[BLOCKLEN] = {0};
+  static uint8_t returnBuffer[BLOCKLEN];
+  memset(returnBuffer, 0x00, 16);
 
   memcpy(&returnBuffer[BLOCKLEN - size], buffer, size);
 
