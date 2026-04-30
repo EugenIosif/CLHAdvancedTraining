@@ -70,8 +70,8 @@ uint8_t * encryptDataWithPadding(uint8_t size, uint8_t * buffer)
   return returnBuffer;
 }
 
-// void main(void)
-// {
-//   uint8_t dataBuffer[8] = {0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08};
-//   uint8_t * encryptedData = encryptDataWithPadding(8, dataBuffer);
-// }
+void main(void)
+{
+  uint8_t dataBuffer[8] = {0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08};
+  uint8_t * encryptedData = encryptDataWithPadding(8, dataBuffer);
+}

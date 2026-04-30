@@ -61,7 +61,7 @@ void Error_Handler(void);
 /* Private defines -----------------------------------------------------------*/
 
 /* USER CODE BEGIN Private defines */
-
+#define TRANSMISSION_BYTE_LEN 20
 /* USER CODE END Private defines */
 
 #ifdef __cplusplus
