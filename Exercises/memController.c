@@ -3,7 +3,7 @@
 
 #define BLOCKLEN 16
 
-static void readFromMemory(uint8_t * returnVector, uint8_t size, uint8_t startAddress)
+void readFromMemory(uint8_t * returnVector, uint8_t size, uint8_t startAddress)
 {
     if(returnVector != NULL && size > 0 && (startAddress + size) <= sizeof(memoryLikeBuffer))
     {
@@ -11,7 +11,7 @@ static void readFromMemory(uint8_t * returnVector, uint8_t size, uint8_t startAd
     }
 }
 
-static void writeToMemory(uint8_t * sourceBuffer, uint8_t size, uint8_t startAddress)
+void writeToMemory(uint8_t * sourceBuffer, uint8_t size, uint8_t startAddress)
 {
     if(sourceBuffer != NULL && size > 0 && (startAddress + size) <= sizeof(memoryLikeBuffer))
     {
