@@ -113,7 +113,7 @@ uint32_t computeSignature(const uint8_t *bytes, size_t numberOfBytes) {
         hash ^= bytes[i];
         hash *= 0x01000193;
     }
-    return hash;
+    return hash^ SIGNATURE_KEY;
 }
 
 /* USER CODE END 0 */
