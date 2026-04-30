@@ -1,0 +1,13 @@
+{
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "name": "C/C++ Runner: Debug Session",
+      "type": "lldb",
+      "request": "launch",
+      "args": [],
+      "cwd": "/Users/ilitoi.alexandru/Embedded_Cybersecurity/repository/CLHAdvancedTraining/TestProject/Core/Src",
+      "program": "/Users/ilitoi.alexandru/Embedded_Cybersecurity/repository/CLHAdvancedTraining/TestProject/Core/Src/build/Debug/outDebug"
+    }
+  ]
+}

@@ -1,0 +1,5 @@
+cmake_minimum_required(VERSION 3.0)
+project(Exercises)
+
+add_executable(application TxRxapplication.c)
+target_include_directories(application PUBLIC AES_Library/aes.c AES_Library/aes.h)

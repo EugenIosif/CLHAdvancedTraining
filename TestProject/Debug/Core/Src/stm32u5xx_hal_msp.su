@@ -5,3 +5,5 @@
 ../Core/Src/stm32u5xx_hal_msp.c:183:6:HAL_HASH_MspDeInit	16	static
 ../Core/Src/stm32u5xx_hal_msp.c:202:6:HAL_SPI_MspInit	240	static
 ../Core/Src/stm32u5xx_hal_msp.c:252:6:HAL_SPI_MspDeInit	16	static
+../Core/Src/stm32u5xx_hal_msp.c:283:6:HAL_UART_MspInit	240	static
+../Core/Src/stm32u5xx_hal_msp.c:331:6:HAL_UART_MspDeInit	16	static
