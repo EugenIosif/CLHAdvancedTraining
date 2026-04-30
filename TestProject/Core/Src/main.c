@@ -85,6 +85,7 @@ static void MX_USART2_UART_Init(void);
 
 uint32_t computeHash (const uint8_t * bytes, size_t numberOfBytes);
 uint8_t * prepareTransmission(uint8_t * transmissionBuffer, uint8_t size);
+void simpleXORencrypt (uint8_t * bufferToEncrypt, uint8_t size);
 /* USER CODE END PFP */
 
 /* Private user code ---------------------------------------------------------*/
@@ -99,9 +100,10 @@ memset(buffer, 0x00, sizeof(buffer));
   {
     uint32ToBytes tempValue;
     tempValue.value = computeHash(transmissionBuffer, size);
+    simpleXORencrypt(tempValue.bytes, 4);
 
-    memcpy(&buffer[TRANSMISSION_BYTE_LEN - size], transmissionBuffer, size);
     memcpy(&buffer[0], tempValue.bytes, 4);
+    memcpy(&buffer[TRANSMISSION_BYTE_LEN - size], transmissionBuffer, size);
   }
   return buffer;
 }
@@ -113,6 +115,15 @@ uint32_t computeHash(const uint8_t *bytes, size_t numberOfBytes) {
         hash *= 0x01000193;
     }
     return hash;
+}
+
+void simpleXORencrypt(uint8_t * bufferToEncrypt, uint8_t size)
+{
+  if(bufferToEncrypt != NULL)
+  {
+    for(uint8_t i = 0; i < size; i++)
+      *(bufferToEncrypt + i) ^= 0xAB;
+  }
 }
 
 /* USER CODE END 0 */
