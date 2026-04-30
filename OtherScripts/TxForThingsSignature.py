@@ -10,7 +10,7 @@ ser = serial.Serial(
     bytesize=serial.EIGHTBITS
 )
 
-def compute_signature(bytes_data, number_of_bytes):
+def compute_hash(bytes_data, number_of_bytes):
     hash_value = 0x811c9dc5
     for i in range(number_of_bytes):
         hash_value ^= bytes_data[i]
@@ -22,11 +22,13 @@ while True:
         bs = ser.read(ser.in_waiting)  # Clear the buffer
         print("Data received:", bs)  # Read and print the received data
         received_signature = bs[0:4]
-        computed_signature = compute_signature(bs[4:20], 16)
+        received_signature = bytes([b ^ 0xAB for b in received_signature])  # Decrypt using XOR with 0xAB
+
+        computed_signature = compute_hash(bs[4:20], 16)
+        
         if computed_signature == int.from_bytes(received_signature, 'little'):
             print("Signature matches! Here is the payload bytes:")
             print(bs[4:20].hex())
-
         else:
             print("Signature does not match")
 
