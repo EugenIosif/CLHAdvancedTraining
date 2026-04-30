@@ -79,6 +79,36 @@ UART_HandleTypeDef huart1;
 
 /* USER CODE BEGIN PV */
 
+things arrayOfThings[5]= {{     {35, 132, 108, 174, 144, 241, 187, 235}, 
+                                {2, 1, 2, 2, 1, 1, 1, 3}, 
+                                41, 
+                                0
+                            },
+                            {
+                                {219, 135, 62, 36, 13, 6, 71, 179},
+                                {0, 0, 1, 2, 0, 3, 2, 2}, 
+                                11942, 
+                                0
+                            }, 
+                            {
+                                {200, 187, 166, 3, 125, 56, 31, 212},
+                                {3, 3, 3, 2, 1, 1, 1, 3},
+                                1869, 
+                                0
+                            }, 
+                            {
+                                {150, 69, 19, 137, 28, 174, 32, 80},
+                                {1, 3, 1, 2, 3, 2, 2, 2}, 
+                                27644, 
+                                0
+                            },
+                            {
+                                {173, 240, 149, 63, 177, 122, 244, 229},
+                                {0, 2, 1, 3, 0, 1, 2, 3}, 
+                                123456789, 
+                                0
+                        }};
+
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
@@ -241,14 +271,18 @@ void prepareTransmission(things * thing, uint8_t * transmissionBuffer)
 {
     if(thing != NULL)
     {
-        computeValue(thing);
-        ValueUnion valueUnion;
-        valueUnion.value = getValue(thing);
-        setSignature(thing, computeSignature(valueUnion.bytes));
+        // Cream o CLONA a structurii curente ca sa nu distrugem valoarea originala in timp ce calculam
+        things tempThing = *thing;
 
-        memcpy(transmissionBuffer, &thing->signature, sizeof(thing->signature));
-        memcpy(transmissionBuffer + sizeof(thing->signature), &thing->value, sizeof(thing->value));
-        memset(transmissionBuffer + sizeof(thing->value) + sizeof(thing->signature), '\0', 1);
+        computeValue(&tempThing);
+        
+        ValueUnion valueUnion;
+        valueUnion.value = getValue(&tempThing);
+        setSignature(&tempThing, computeSignature(valueUnion.bytes));
+
+        memcpy(transmissionBuffer, &tempThing.signature, sizeof(tempThing.signature));
+        memcpy(transmissionBuffer + sizeof(tempThing.signature), &tempThing.value, sizeof(tempThing.value));
+        memset(transmissionBuffer + sizeof(tempThing.value) + sizeof(tempThing.signature), '\0', 1);
     }
 }
 
@@ -317,7 +351,7 @@ int main(void)
 
   /* -- Sample board code to send message over COM1 port ---- */
 
-  printf("Welcome to STM32 world !\n\r");
+  //printf("Welcome to STM32 world !\n\r");
 
   // char buffer[100] = {0};
   // sprintf(buffer, "Welcome to STM32 world !\n\r");
@@ -333,8 +367,38 @@ int main(void)
   /* Infinite loop */
   /* USER CODE BEGIN WHILE */
 
-  char msg[17] = "SECRET_P\0ASS12345";
-  char key = 0xCD;
+ // char msg[17] = "SECRET_P\0ASS12345";
+ // char key = 0xCD;
+
+ things arrayOfThings[5]= {{     {35, 132, 108, 174, 144, 241, 187, 235}, 
+                                {2, 1, 2, 2, 1, 1, 1, 3}, 
+                                41, 
+                                0
+                            },
+                            {
+                                {219, 135, 62, 36, 13, 6, 71, 179},
+                                {0, 0, 1, 2, 0, 3, 2, 2}, 
+                                11942, 
+                                0
+                            }, 
+                            {
+                                {200, 187, 166, 3, 125, 56, 31, 212},
+                                {3, 3, 3, 2, 1, 1, 1, 3},
+                                1869, 
+                                0
+                            }, 
+                            {
+                                {150, 69, 19, 137, 28, 174, 32, 80},
+                                {1, 3, 1, 2, 3, 2, 2, 2}, 
+                                27644, 
+                                0
+                            },
+                            {
+                                {173, 240, 149, 63, 177, 122, 244, 229},
+                                {0, 2, 1, 3, 0, 1, 2, 3}, 
+                                123456789, 
+                                0
+                        }};
 
   while (1)
   {
@@ -348,10 +412,29 @@ int main(void)
       BSP_LED_Toggle(LED_BLUE);
       BSP_LED_Toggle(LED_RED);
 
-      encryptMessage(&msg[0], key, MSGLEN);
-      printf("Encrypted message: %s\n\r", msg);
+     // encryptMessage(&msg[0], key, MSGLEN);
+      //printf("Encrypted message: %s\n\r", msg);
 
 	    /* ..... Perform your action ..... */
+      printf("Starting UART transmission...\n\r");
+      for(int i = 0; i < 5; i++)
+      {
+          uint8_t txBuffer[10] = {0}; // buffer de 10 bytes (1 signature + 8 value + 1 \0)
+
+          // Apelam functia ca sa ne pregateasca buffer-ul pentru elementul curent
+          prepareTransmission(&arrayOfThings[i], txBuffer);
+
+          // Ca sa poti VEDEA cu ochiul liber pe seriala ce se transmite:
+          printf("Pachet %d: ", i + 1);
+          for(int j = 0; j < 9; j++) 
+          {
+              printf("%02X ", txBuffer[j]);
+          }
+          printf("\n\r");
+
+          // Transmitem prin UART-ul asignat (date binare brute)
+          HAL_UART_Transmit(&huart1, txBuffer, 10, HAL_MAX_DELAY);
+      }
     }
     /* USER CODE END WHILE */
 
@@ -643,7 +726,7 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
   */
 void BSP_PB_Callback(Button_TypeDef Button)
 {
-  if (Button == BUTTON_USER)
+  if (Button == BUTTON_USER) //
   {
     BspButtonState = BUTTON_PRESSED;
   }
