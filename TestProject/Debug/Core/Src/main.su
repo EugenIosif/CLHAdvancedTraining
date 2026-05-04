@@ -1,3 +1,5 @@
+<<<<<<< HEAD
+=======
 ../Core/Src/main.c:94:11:prepareTransmission	24	static
 ../Core/Src/main.c:111:10:computeHash	24	static
 ../Core/Src/main.c:120:6:simpleXORencrypt	24	static
@@ -14,3 +16,4 @@
 ../Core/Src/main.c:599:6:HAL_TIM_PeriodElapsedCallback	16	static
 ../Core/Src/main.c:618:6:BSP_PB_Callback	16	static
 ../Core/Src/main.c:630:6:Error_Handler	4	static,ignoring_inline_asm
+>>>>>>> Beginner_Training

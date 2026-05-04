@@ -1,3 +1,5 @@
+<<<<<<< HEAD
+=======
 ../Core/Src/main.c:94:11:prepareTransmission	3
 ../Core/Src/main.c:111:10:computeHash	2
 ../Core/Src/main.c:120:6:simpleXORencrypt	3
@@ -14,3 +16,4 @@
 ../Core/Src/main.c:599:6:HAL_TIM_PeriodElapsedCallback	2
 ../Core/Src/main.c:618:6:BSP_PB_Callback	2
 ../Core/Src/main.c:630:6:Error_Handler	1
+>>>>>>> Beginner_Training
