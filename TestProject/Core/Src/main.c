@@ -115,7 +115,7 @@ uint32_t computeHash(const uint8_t *bytes, size_t numberOfBytes) {
         hash ^= bytes[i];
         hash *= 0x01000193;
     }
-    return hash^ SIGNATURE_KEY;
+    return hash;
 }
 
 void simpleXORencrypt(uint8_t * bufferToEncrypt, uint8_t size)
