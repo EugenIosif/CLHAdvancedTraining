@@ -2,11 +2,19 @@
 #include <stdint.h>
 #include <stdlib.h>
 #include <stdbool.h>
-#include <string.h>
 #include <time.h>
+
+// --- Forward Declarations ---
 
 // Key Generation
 void generate_and_check_rsa_keys(uint8_t n_key[8], uint8_t e_key[8], uint8_t d_key[8]);
+
+// RSA Operations
+void rsa_encrypt(const uint8_t message[8], uint8_t ciphertext[8], const uint8_t e_key[8], const uint8_t n_key[8]);
+void rsa_decrypt(const uint8_t ciphertext[8], uint8_t decrypted_message[8], const uint8_t d_key[8], const uint8_t n_key[8]);
+
+// Test Function
+void test_rsa_algorithm(void);
 
 uint8_t RSA_n[8] = {0xE9, 0xCB, 0x9A, 0x6F, 0x4E, 0x79, 0x26, 0x00};
 uint8_t RSA_e[8] = {0x01, 0x00, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00};
@@ -32,19 +40,6 @@ uint64_t u8_array_to_u64(const uint8_t arr[8]) {
         val |= (uint64_t)arr[i] << (i * 8);
     }
     return val;
-}
-
-/**
- * @brief Returns the pulic key in a 16 byte array (e, n)
- */
-void returnPublicKey(uint8_t * publicKey, uint8_t size)
-{
-    if((publicKey != NULL) && (size == 16))
-    {
-        memset(publicKey, 0x00, 16); //set the whole buffer to 0
-        memcpy(publicKey, RSA_e, 8); //copy on the first 8 bytes the public exponent
-        memcpy(publicKey+8, RSA_n, 8);//copy on the last 8 bytes the modulo
-    }    
 }
 
 /**
@@ -233,68 +228,68 @@ void print_key_array(const char* name, const uint8_t key[8]) {
     printf("\n");
 }
 
-//void test_rsa_algorithm(void) {
-//    srand(time(NULL));
-//
-//    // uint8_t n[8] = {0}, e[8] = {0}, d[8] = {0};
-//
-//    // printf("Generating 64-bit RSA keys...\n");
-//    // generate_and_check_rsa_keys(n, e, d);
-//
-//    uint64_t n_val = u8_array_to_u64(n);
-//
-//    printf("Keys generated and validated.\n");
-//    print_key_array("n", n);
-//    print_key_array("e", e);
-//    print_key_array("d", d);
-//
-//    for (int i = 7; i >= 0; i--) {
-//        printf("%02X", n[i]);
-//    }
-//    printf("\n");
-//    for (int i = 7; i >= 0; i--) {
-//        printf("%02X", e[i]);
-//    }
-//    printf("\n");
-//    for (int i = 7; i >= 0; i--) {
-//        printf("%02X", d[i]);
-//    }
-//    // Test with a sample message
-//    uint8_t original_message[8];
-//    uint8_t encrypted_message[8];
-//    uint8_t decrypted_message[8];
-//
-//    // A sample 64-bit message. Must be less than n.
-//    uint64_t original_message_val = 0x123456789ABCDEF0;
-//    if (original_message_val >= n_val) {
-//        printf("\nWarning: Sample message is too large for the generated n. Using a smaller message.\n");
-//        original_message_val = n_val / 2;
-//    }
-//    u64_to_u8_array(original_message_val, original_message);
-//
-//    printf("\nOriginal message (decimal): %llu\n", original_message_val);
-//    print_key_array("Original message", original_message);
-//
-//    printf("\nEncrypting...\n");
-//    rsa_encrypt(original_message, encrypted_message, e, n);
-//    print_key_array("Encrypted message", encrypted_message);
-//
-//    printf("\nDecrypting...\n");
-//    rsa_decrypt(encrypted_message, decrypted_message, d, n);
-//    uint64_t decrypted_val = u8_array_to_u64(decrypted_message);
-//    print_key_array("Decrypted message", decrypted_message);
-//
-//    // Verification
-//    if (original_message_val == decrypted_val) {
-//        printf("\nSUCCESS: Decrypted message matches the original.\n");
-//    } else {
-//        printf("\nFAILURE: Decrypted message does NOT match the original.\n");
-//    }
-//}
+void test_rsa_algorithm(void) {
+    srand(time(NULL));
+
+    // uint8_t n[8] = {0}, e[8] = {0}, d[8] = {0};
+
+    // printf("Generating 64-bit RSA keys...\n");
+    // generate_and_check_rsa_keys(n, e, d);
+
+    uint64_t n_val = u8_array_to_u64(n);
+
+    printf("Keys generated and validated.\n");
+    print_key_array("n", n);
+    print_key_array("e", e);
+    print_key_array("d", d);
+
+    for (int i = 7; i >= 0; i--) {
+        printf("%02X", n[i]);
+    }
+    printf("\n");
+    for (int i = 7; i >= 0; i--) {
+        printf("%02X", e[i]);
+    }
+    printf("\n");
+    for (int i = 7; i >= 0; i--) {
+        printf("%02X", d[i]);
+    }
+    // Test with a sample message
+    uint8_t original_message[8];
+    uint8_t encrypted_message[8];
+    uint8_t decrypted_message[8];
+
+    // A sample 64-bit message. Must be less than n.
+    uint64_t original_message_val = 0x123456789ABCDEF0;
+    if (original_message_val >= n_val) {
+        printf("\nWarning: Sample message is too large for the generated n. Using a smaller message.\n");
+        original_message_val = n_val / 2;
+    }
+    u64_to_u8_array(original_message_val, original_message);
+
+    printf("\nOriginal message (decimal): %llu\n", original_message_val);
+    print_key_array("Original message", original_message);
+
+    printf("\nEncrypting...\n");
+    rsa_encrypt(original_message, encrypted_message, e, n);
+    print_key_array("Encrypted message", encrypted_message);
+
+    printf("\nDecrypting...\n");
+    rsa_decrypt(encrypted_message, decrypted_message, d, n);
+    uint64_t decrypted_val = u8_array_to_u64(decrypted_message);
+    print_key_array("Decrypted message", decrypted_message);
+
+    // Verification
+    if (original_message_val == decrypted_val) {
+        printf("\nSUCCESS: Decrypted message matches the original.\n");
+    } else {
+        printf("\nFAILURE: Decrypted message does NOT match the original.\n");
+    }
+}
 
 // --- Main Function ---
 
-//int main(void) {
-//    test_rsa_algorithm();
-//    return 0;
-//}
+int main(void) {
+    test_rsa_algorithm();
+    return 0;
+}

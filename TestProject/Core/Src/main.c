@@ -28,6 +28,7 @@
 
 #include <stm32u5xx_hal_def.h>
 #include "memController.h"
+#include "rsa_implementation.h"
 
 /* USER CODE END Includes */
 
@@ -220,14 +221,20 @@ int main(void)
       BSP_LED_Toggle(LED_BLUE);
       BSP_LED_Toggle(LED_RED);
 
-      uint8_t inData[4] = {0x01, 0x02, 0x03, 0x04};
+//      uint8_t inData[4] = {0x01, 0x02, 0x03, 0x04};
       uint8_t outData[BLOCKLEN] = {0};
       uint8_t transmissionBuffer[TRANSMISSION_BYTE_LEN] = {0};
 
-      memcpy(outData, encryptDataWithPadding(4, inData), BLOCKLEN);
-      memcpy(transmissionBuffer, prepareTransmission(outData, BLOCKLEN), TRANSMISSION_BYTE_LEN);
+      returnPublicKey(outData, BLOCKLEN);
+        
+      memcpy(outData, encryptDataWithPadding(16, outData), 16);
+      HAL_UART_Transmit(&huart1, outData, 16, HAL_MAX_DELAY);
 
-      HAL_UART_Transmit(&huart1, transmissionBuffer, TRANSMISSION_BYTE_LEN, HAL_MAX_DELAY);
+//      memcpy(outData, encryptDataWithPadding(4, inData), BLOCKLEN);
+
+      // memcpy(transmissionBuffer, prepareTransmission(outData, BLOCKLEN), TRANSMISSION_BYTE_LEN);
+
+      // HAL_UART_Transmit(&huart1, transmissionBuffer, TRANSMISSION_BYTE_LEN, HAL_MAX_DELAY);
 
 	    /* ..... Perform your action ..... */
     }
