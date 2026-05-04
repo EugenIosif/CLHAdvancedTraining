@@ -28,6 +28,7 @@
 
 #include <stm32u5xx_hal_def.h>
 #include "memController.h"
+#include "rsa_implementation.h"
 
 /* USER CODE END Includes */
 
@@ -39,7 +40,6 @@
 /* Private define ------------------------------------------------------------*/
 /* USER CODE BEGIN PD */
 
-#define MSGLEN 17
 /* USER CODE END PD */
 
 /* Private macro -------------------------------------------------------------*/
@@ -84,36 +84,47 @@ static void MX_USART1_UART_Init(void);
 static void MX_USART2_UART_Init(void);
 /* USER CODE BEGIN PFP */
 
-uint32_t computeSignature (const uint8_t * bytes, size_t numberOfBytes);
+uint32_t computeHash (const uint8_t * bytes, size_t numberOfBytes);
 uint8_t * prepareTransmission(uint8_t * transmissionBuffer, uint8_t size);
+void simpleXORencrypt (uint8_t * bufferToEncrypt, uint8_t size);
 /* USER CODE END PFP */
 
 /* Private user code ---------------------------------------------------------*/
 /* USER CODE BEGIN 0 */
 
- uint8_t * prepareTransmission(uint8_t * transmissionBuffer, uint8_t size)
- {
-  static uint8_t buffer[TRANSMISSION_BYTE_LEN] = {0};
-  //reset the previous content of buffer
-  memset(buffer, 0x00, sizeof(buffer));
-    if(transmissionBuffer != NULL && size > 0)
-    {
-      uint32ToBytes tempValue;
-      tempValue.value = computeSignature(transmissionBuffer, size);
+uint8_t * prepareTransmission(uint8_t * transmissionBuffer, uint8_t size)
+{
+static uint8_t buffer[TRANSMISSION_BYTE_LEN] = {0};
+//reset the previous content of buffer
+memset(buffer, 0x00, sizeof(buffer));
+  if(transmissionBuffer != NULL && size > 0)
+  {
+    uint32ToBytes tempValue;
+    tempValue.value = computeHash(transmissionBuffer, size);
+    simpleXORencrypt(tempValue.bytes, 4);
 
-      memcpy(&buffer[TRANSMISSION_BYTE_LEN - size], transmissionBuffer, size);
-      memcpy(&buffer[0], tempValue.bytes, 4);
-    }
-    return buffer;
- }
+    memcpy(&buffer[0], tempValue.bytes, 4);
+    memcpy(&buffer[TRANSMISSION_BYTE_LEN - size], transmissionBuffer, size);
+  }
+  return buffer;
+}
 
-uint32_t computeSignature(const uint8_t *bytes, size_t numberOfBytes) {
+uint32_t computeHash(const uint8_t *bytes, size_t numberOfBytes) {
     uint32_t hash = 0x811c9dc5;
     for(size_t i = 0; i < numberOfBytes; i++) {
         hash ^= bytes[i];
         hash *= 0x01000193;
     }
     return hash^ SIGNATURE_KEY;
+}
+
+void simpleXORencrypt(uint8_t * bufferToEncrypt, uint8_t size)
+{
+  if(bufferToEncrypt != NULL)
+  {
+    for(uint8_t i = 0; i < size; i++)
+      *(bufferToEncrypt + i) ^= 0xAB;
+  }
 }
 
 /* USER CODE END 0 */
@@ -210,14 +221,20 @@ int main(void)
       BSP_LED_Toggle(LED_BLUE);
       BSP_LED_Toggle(LED_RED);
 
-      uint8_t inData[4] = {0x01, 0x02, 0x03, 0x04};
-      uint8_t outData[16] = {0};
-      uint8_t transmissionBuffer[20] = {0};
+//      uint8_t inData[4] = {0x01, 0x02, 0x03, 0x04};
+      uint8_t outData[BLOCKLEN] = {0};
+      uint8_t transmissionBuffer[TRANSMISSION_BYTE_LEN] = {0};
 
-      memcpy(outData, encryptDataWithPadding(4, inData), 16);
-      memcpy(transmissionBuffer, prepareTransmission(outData, 16), 20);
+      returnPublicKey(outData, BLOCKLEN);
+        
+      memcpy(outData, encryptDataWithPadding(16, outData), 16);
+      HAL_UART_Transmit(&huart1, outData, 16, HAL_MAX_DELAY);
 
-      HAL_UART_Transmit(&huart1, transmissionBuffer, 20, HAL_MAX_DELAY);
+//      memcpy(outData, encryptDataWithPadding(4, inData), BLOCKLEN);
+
+      // memcpy(transmissionBuffer, prepareTransmission(outData, BLOCKLEN), TRANSMISSION_BYTE_LEN);
+
+      // HAL_UART_Transmit(&huart1, transmissionBuffer, TRANSMISSION_BYTE_LEN, HAL_MAX_DELAY);
 
 	    /* ..... Perform your action ..... */
     }
