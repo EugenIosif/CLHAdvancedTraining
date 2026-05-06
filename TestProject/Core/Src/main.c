@@ -122,26 +122,23 @@ void encryptU32WithRSA(uint32_t * inputValue, uint64_t * outputValue)
 	}
 }
 
-//uint8_t * prepareTransmission(uint8_t * transmissionBuffer, uint8_t size)
-//{
+// uint8_t * prepareTransmission(uint8_t * transmissionBuffer, uint8_t size)
+// {
 //  static uint8_t buffer[TRANSMISSION_BYTE_LEN] = {0};
 //  //reset the previous content of buffer
 //  memset(buffer, 0x00, sizeof(buffer));
 //  if(transmissionBuffer != NULL && size > 0)
 //  {
-//    uint32ToBytes tempValue;
-//    memcpy(tempValue.bytes)
-//    tempValue.value = computeHash(transmissionBuffer, size);
-//    // simpleXORencrypt(tempValue.bytes, 4);
-//    uint8_t returnArray[8] = {0};
-//    RSA_ENCRYPTION_IF(tempValue.bytes, returnArray);
-//
-//    // memcpy(&buffer[0], tempValue.bytes, 4);
+//     uint32ToBytes tempValue;
+//     memcpy(tempValue.bytes)
+//     tempValue.value = computeHash(transmissionBuffer, size);
+   
+//     // memcpy(&buffer[0], tempValue.bytes, 4);
 //    memcpy(&buffer[0], returnArray, 4);
 //    memcpy(&buffer[TRANSMISSION_BYTE_LEN - size], transmissionBuffer, size);
 //  }
 //  return buffer;
-//}
+// }
 
 uint32_t computeHash(const uint8_t *bytes, size_t numberOfBytes) {
     uint32_t hash = 0x811c9dc5;
@@ -150,15 +147,6 @@ uint32_t computeHash(const uint8_t *bytes, size_t numberOfBytes) {
         hash *= 0x01000193;
     }
     return hash;
-}
-
-void simpleXORencrypt(uint8_t * bufferToEncrypt, uint8_t size)
-{
-  if(bufferToEncrypt != NULL)
-  {
-    for(uint8_t i = 0; i < size; i++)
-      *(bufferToEncrypt + i) ^= 0xAB;
-  }
 }
 
 /* USER CODE END 0 */
@@ -229,9 +217,8 @@ int main(void)
 
   printf("\n\rWelcome to STM32 world !\n\r");
 
-  // char buffer[100] = {0};
-  // sprintf(buffer, "Welcome to STM32 world !\n\r");
-  // HAL_UART_Transmit(&huart1, (uint8_t*)buffer, 24, HAL_MAX_DELAY);
+  struct AES_ctx ctx;
+  AES_init_ctx(&ctx, AES_key);
 
   /* -- Sample board code to switch on leds ---- */
   BSP_LED_On(LED_GREEN);
@@ -255,29 +242,15 @@ int main(void)
       BSP_LED_Toggle(LED_BLUE);
       BSP_LED_Toggle(LED_RED);
 
-      uint64_t returnArray[8];
-      uint64ToBytes transformers[8];
+      uint8_t returnBuffer[16] = {0x12, 0x34, 0x56, 0x78, 0x9A, 0xBC, 0xDE, 0xF0, 0x12, 0x34, 0x56, 0x78, 0x9A, 0xBC, 0xDE, 0xF0};
 
-	  encryptU32WithRSA(u32Array, returnArray);
-
-	  for(uint8_t i = 0; i<8; i++)
-	  {
-		  transformers[i].value = returnArray[i];
-	  }
-
-	  printf("\n\r0x");
-
-	  // for(uint8_t i = 0; i<8; i++)
-	  // {
-		//   for(uint8_t j = 0; j<8; j++)
-		//   {
-		// 	  printf("%2x", transformers[i].bytes[j]);
-		//   }
-	  // printf("\n\r");
-	  // }
+      AES_ECB_encrypt(&ctx, returnBuffer);
+      HAL_UART_Transmit(&huart1, returnBuffer, 16, HAL_MAX_DELAY);
 
 
+	  // encryptU32WithRSA(u32Array, returnArray);
 
+	  
 	    /* ..... Perform your action ..... */
     }
     /* USER CODE END WHILE */
