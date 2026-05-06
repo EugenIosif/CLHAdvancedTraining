@@ -98,6 +98,7 @@ static void MX_USART1_UART_Init(void);
 uint32_t computeHash (const uint8_t * bytes, size_t numberOfBytes);
 uint8_t * prepareTransmission(uint8_t * transmissionBuffer, uint8_t size);
 void simpleXORencrypt (uint8_t * bufferToEncrypt, uint8_t size);
+void sendEncryptedPublicKey(struct AES_ctx *ctx);
 /* USER CODE END PFP */
 
 /* Private user code ---------------------------------------------------------*/
@@ -147,6 +148,16 @@ uint32_t computeHash(const uint8_t *bytes, size_t numberOfBytes) {
         hash *= 0x01000193;
     }
     return hash;
+}
+
+void sendEncryptedPublicKey(struct AES_ctx *ctx)
+{
+    uint8_t publicKeyBuffer[16] = {0};
+    KEY_GENERATION;
+
+    returnPublicKey(publicKeyBuffer, 16);  
+    AES_ECB_encrypt(ctx, publicKeyBuffer);
+    HAL_UART_Transmit(&huart1, publicKeyBuffer, 16, HAL_MAX_DELAY);
 }
 
 /* USER CODE END 0 */
@@ -242,10 +253,8 @@ int main(void)
       BSP_LED_Toggle(LED_BLUE);
       BSP_LED_Toggle(LED_RED);
 
-      uint8_t returnBuffer[16] = {0x12, 0x34, 0x56, 0x78, 0x9A, 0xBC, 0xDE, 0xF0, 0x12, 0x34, 0x56, 0x78, 0x9A, 0xBC, 0xDE, 0xF0};
-
-      AES_ECB_encrypt(&ctx, returnBuffer);
-      HAL_UART_Transmit(&huart1, returnBuffer, 16, HAL_MAX_DELAY);
+      /* Apelam functia care se ocupa de criptarea si trimiterea cheii publice */
+      sendEncryptedPublicKey(&ctx);
 
 
 	  // encryptU32WithRSA(u32Array, returnArray);
