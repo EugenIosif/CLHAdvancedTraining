@@ -13,10 +13,12 @@ ser = serial.Serial(
 while True:
     if(ser.in_waiting > 0):
         bs = ser.read(ser.in_waiting)  # Clear the buffer
-        # print("Data received:", bs.hex())  # Read and print the received data
-        public_exponent = bs[0:7]
-        modulus = bs[8:15]
-        print("public exponent: ", public_exponent.hex())
-        print("modulus: ", modulus.hex())
-        time.sleep(1 )
-        
+        # bs = ser.readline()
+        # public_exponent = bs[0:7]
+        # modulus = bs[8:15]
+        print(bs.hex())
+
+        # print("public exponent: ", public_exponent.hex())
+        # print("modulus: ", modulus.hex())
+        # time.sleep(1)
+    

@@ -52,6 +52,13 @@ typedef union uint32ToBytes
   uint8_t bytes[4];
 }uint32ToBytes;
 
+typedef union uint64ToBytes
+{
+  /* data */
+  uint32_t value;
+  uint8_t bytes[8];
+}uint64ToBytes;
+
 
 /* USER CODE END PM */
 
@@ -68,6 +75,10 @@ SPI_HandleTypeDef hspi1;
 UART_HandleTypeDef huart1;
 UART_HandleTypeDef huart2;
 
+uint32_t u32Array[8] = {0x01020304, 0x05060708, 0x090A0B0C, 0x0D0E0F10, 0x11121314, 0x15161718, 0x191A1B1C, 0x1D1E1F20};
+/* USER CODE BEGIN PV */
+
+
 /* USER CODE BEGIN PV */
 
 /* USER CODE END PV */
@@ -81,7 +92,7 @@ static void MX_HASH_Init(void);
 static void MX_SPI1_Init(void);
 static void MX_ADC1_Init(void);
 static void MX_USART1_UART_Init(void);
-static void MX_USART2_UART_Init(void);
+//static void MX_USART2_UART_Init(void);
 /* USER CODE BEGIN PFP */
 
 uint32_t computeHash (const uint8_t * bytes, size_t numberOfBytes);
@@ -92,22 +103,45 @@ void simpleXORencrypt (uint8_t * bufferToEncrypt, uint8_t size);
 /* Private user code ---------------------------------------------------------*/
 /* USER CODE BEGIN 0 */
 
-uint8_t * prepareTransmission(uint8_t * transmissionBuffer, uint8_t size)
+void encryptU32WithRSA(uint32_t * inputValue, uint64_t * outputValue)
 {
-static uint8_t buffer[TRANSMISSION_BYTE_LEN] = {0};
-//reset the previous content of buffer
-memset(buffer, 0x00, sizeof(buffer));
-  if(transmissionBuffer != NULL && size > 0)
-  {
-    uint32ToBytes tempValue;
-    tempValue.value = computeHash(transmissionBuffer, size);
-    simpleXORencrypt(tempValue.bytes, 4);
-
-    memcpy(&buffer[0], tempValue.bytes, 4);
-    memcpy(&buffer[TRANSMISSION_BYTE_LEN - size], transmissionBuffer, size);
-  }
-  return buffer;
+	if(inputValue != NULL && outputValue != NULL)
+	{
+		uint32ToBytes inputTempValue;
+		uint64ToBytes outputTempValue[8];
+		//8 entries in the array
+		for(uint8_t i = 0; i < 8; i++)
+		{
+		  //used for byte access of the input
+		  inputTempValue.value = inputValue[i];
+		  uint8_t dummyArray[8] = {0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00};
+		  memcpy(dummyArray+4, inputTempValue.bytes, 4);
+      KEY_GENERATION;
+		  RSA_ENCRYPTION_IF(dummyArray, outputTempValue[i].bytes);
+		}
+	}
 }
+
+//uint8_t * prepareTransmission(uint8_t * transmissionBuffer, uint8_t size)
+//{
+//  static uint8_t buffer[TRANSMISSION_BYTE_LEN] = {0};
+//  //reset the previous content of buffer
+//  memset(buffer, 0x00, sizeof(buffer));
+//  if(transmissionBuffer != NULL && size > 0)
+//  {
+//    uint32ToBytes tempValue;
+//    memcpy(tempValue.bytes)
+//    tempValue.value = computeHash(transmissionBuffer, size);
+//    // simpleXORencrypt(tempValue.bytes, 4);
+//    uint8_t returnArray[8] = {0};
+//    RSA_ENCRYPTION_IF(tempValue.bytes, returnArray);
+//
+//    // memcpy(&buffer[0], tempValue.bytes, 4);
+//    memcpy(&buffer[0], returnArray, 4);
+//    memcpy(&buffer[TRANSMISSION_BYTE_LEN - size], transmissionBuffer, size);
+//  }
+//  return buffer;
+//}
 
 uint32_t computeHash(const uint8_t *bytes, size_t numberOfBytes) {
     uint32_t hash = 0x811c9dc5;
@@ -221,20 +255,28 @@ int main(void)
       BSP_LED_Toggle(LED_BLUE);
       BSP_LED_Toggle(LED_RED);
 
-//      uint8_t inData[4] = {0x01, 0x02, 0x03, 0x04};
-      uint8_t outData[BLOCKLEN] = {0};
-      uint8_t transmissionBuffer[TRANSMISSION_BYTE_LEN] = {0};
+      uint64_t returnArray[8];
+      uint64ToBytes transformers[8];
 
-      returnPublicKey(outData, BLOCKLEN);
-        
-      memcpy(outData, encryptDataWithPadding(16, outData), 16);
-      HAL_UART_Transmit(&huart1, outData, 16, HAL_MAX_DELAY);
+	  encryptU32WithRSA(u32Array, returnArray);
 
-//      memcpy(outData, encryptDataWithPadding(4, inData), BLOCKLEN);
+	  for(uint8_t i = 0; i<8; i++)
+	  {
+		  transformers[i].value = returnArray[i];
+	  }
 
-      // memcpy(transmissionBuffer, prepareTransmission(outData, BLOCKLEN), TRANSMISSION_BYTE_LEN);
+	  printf("\n\r0x");
 
-      // HAL_UART_Transmit(&huart1, transmissionBuffer, TRANSMISSION_BYTE_LEN, HAL_MAX_DELAY);
+	  // for(uint8_t i = 0; i<8; i++)
+	  // {
+		//   for(uint8_t j = 0; j<8; j++)
+		//   {
+		// 	  printf("%2x", transformers[i].bytes[j]);
+		//   }
+	  // printf("\n\r");
+	  // }
+
+
 
 	    /* ..... Perform your action ..... */
     }
@@ -527,48 +569,48 @@ static void MX_USART1_UART_Init(void)
   * @param None
   * @retval None
   */
-static void MX_USART2_UART_Init(void)
-{
-
-  /* USER CODE BEGIN USART2_Init 0 */
-
-  /* USER CODE END USART2_Init 0 */
-
-  /* USER CODE BEGIN USART2_Init 1 */
-
-  /* USER CODE END USART2_Init 1 */
-  huart2.Instance = USART2;
-  huart2.Init.BaudRate = 115200;
-  huart2.Init.WordLength = UART_WORDLENGTH_8B;
-  huart2.Init.StopBits = UART_STOPBITS_1;
-  huart2.Init.Parity = UART_PARITY_NONE;
-  huart2.Init.Mode = UART_MODE_TX_RX;
-  huart2.Init.HwFlowCtl = UART_HWCONTROL_NONE;
-  huart2.Init.OverSampling = UART_OVERSAMPLING_16;
-  huart2.Init.OneBitSampling = UART_ONE_BIT_SAMPLE_DISABLE;
-  huart2.Init.ClockPrescaler = UART_PRESCALER_DIV1;
-  huart2.AdvancedInit.AdvFeatureInit = UART_ADVFEATURE_NO_INIT;
-  if (HAL_UART_Init(&huart2) != HAL_OK)
-  {
-    Error_Handler();
-  }
-  if (HAL_UARTEx_SetTxFifoThreshold(&huart2, UART_TXFIFO_THRESHOLD_1_8) != HAL_OK)
-  {
-    Error_Handler();
-  }
-  if (HAL_UARTEx_SetRxFifoThreshold(&huart2, UART_RXFIFO_THRESHOLD_1_8) != HAL_OK)
-  {
-    Error_Handler();
-  }
-  if (HAL_UARTEx_DisableFifoMode(&huart2) != HAL_OK)
-  {
-    Error_Handler();
-  }
-  /* USER CODE BEGIN USART2_Init 2 */
-
-  /* USER CODE END USART2_Init 2 */
-
-}
+//static void MX_USART2_UART_Init(void)
+//{
+//
+//  /* USER CODE BEGIN USART2_Init 0 */
+//
+//  /* USER CODE END USART2_Init 0 */
+//
+//  /* USER CODE BEGIN USART2_Init 1 */
+//
+//  /* USER CODE END USART2_Init 1 */
+//  huart2.Instance = USART2;
+//  huart2.Init.BaudRate = 115200;
+//  huart2.Init.WordLength = UART_WORDLENGTH_8B;
+//  huart2.Init.StopBits = UART_STOPBITS_1;
+//  huart2.Init.Parity = UART_PARITY_NONE;
+//  huart2.Init.Mode = UART_MODE_TX_RX;
+//  huart2.Init.HwFlowCtl = UART_HWCONTROL_NONE;
+//  huart2.Init.OverSampling = UART_OVERSAMPLING_16;
+//  huart2.Init.OneBitSampling = UART_ONE_BIT_SAMPLE_DISABLE;
+//  huart2.Init.ClockPrescaler = UART_PRESCALER_DIV1;
+//  huart2.AdvancedInit.AdvFeatureInit = UART_ADVFEATURE_NO_INIT;
+//  if (HAL_UART_Init(&huart2) != HAL_OK)
+//  {
+//    Error_Handler();
+//  }
+//  if (HAL_UARTEx_SetTxFifoThreshold(&huart2, UART_TXFIFO_THRESHOLD_1_8) != HAL_OK)
+//  {
+//    Error_Handler();
+//  }
+//  if (HAL_UARTEx_SetRxFifoThreshold(&huart2, UART_RXFIFO_THRESHOLD_1_8) != HAL_OK)
+//  {
+//    Error_Handler();
+//  }
+//  if (HAL_UARTEx_DisableFifoMode(&huart2) != HAL_OK)
+//  {
+//    Error_Handler();
+//  }
+//  /* USER CODE BEGIN USART2_Init 2 */
+//
+//  /* USER CODE END USART2_Init 2 */
+//
+//}
 
 /**
   * @brief GPIO Initialization Function
