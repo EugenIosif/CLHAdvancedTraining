@@ -219,6 +219,8 @@ int main(void)
 
   struct AES_ctx ctx;
   AES_init_ctx(&ctx, AES_key);
+  uint8_t returnBuffer[16] = {0x12, 0x34, 0x56, 0x78, 0x9A, 0xBC, 0xDE, 0xF0, 0x12, 0x34, 0x56, 0x78, 0x9A, 0xBC, 0xDE, 0xF0};
+  KEY_GENERATION;
 
   /* -- Sample board code to switch on leds ---- */
   BSP_LED_On(LED_GREEN);
@@ -242,15 +244,9 @@ int main(void)
       BSP_LED_Toggle(LED_BLUE);
       BSP_LED_Toggle(LED_RED);
 
-      uint8_t returnBuffer[16] = {0x12, 0x34, 0x56, 0x78, 0x9A, 0xBC, 0xDE, 0xF0, 0x12, 0x34, 0x56, 0x78, 0x9A, 0xBC, 0xDE, 0xF0};
-
+      returnPublicKey(returnBuffer, 16);
       AES_ECB_encrypt(&ctx, returnBuffer);
-      HAL_UART_Transmit(&huart1, returnBuffer, 16, HAL_MAX_DELAY);
-
-
-	  // encryptU32WithRSA(u32Array, returnArray);
-
-	  
+      HAL_UART_Transmit(&huart1, returnBuffer, 16, HAL_MAX_DELAY);	  
 	    /* ..... Perform your action ..... */
     }
     /* USER CODE END WHILE */
