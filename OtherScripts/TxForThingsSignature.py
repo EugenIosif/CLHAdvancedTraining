@@ -1,6 +1,8 @@
 import serial
 import time
 import random
+from cryptography.hazmat.primitives.ciphers import Cipher, algorithms, modes
+from cryptography.hazmat.backends import default_backend
 
 ser = serial.Serial(
     port='COM9',
@@ -10,12 +12,38 @@ ser = serial.Serial(
     bytesize=serial.EIGHTBITS
 )
 
-def compute_hash(bytes_data, number_of_bytes):
+def compute_hash(data_bytes, number_of_bytes):
     hash_value = 0x811c9dc5
     for i in range(number_of_bytes):
-        hash_value ^= bytes_data[i]
+        hash_value ^= data_bytes[i]
         hash_value = (hash_value * 0x01000193) & 0xFFFFFFFF
     return hash_value
+
+def decryptRSA(data_bytes, number_of_bytes)
+
+# KEY = b'sixteen_byte_key' # Must match the STM32 key
+
+# while True:
+#     if(ser.in_waiting > 0):
+#         bs = ser.read(ser.in_waiting)
+#         print("Data received:", bs)  # Read and print the received data
+        
+#         if len(bs) >= 32:  # Minimum 16 bytes IV + 16 bytes Ciphertext
+#             iv = bs[0:16]
+#             ciphertext = bs[16:]
+            
+#             cipher = Cipher(algorithms.AES(KEY), modes.CBC(iv), backend=default_backend())
+#             decryptor = cipher.decryptor()
+            
+#             try:
+#                 decrypted_payload = decryptor.update(ciphertext) + decryptor.finalize()
+#                 print("AES Decryption Successful!")
+#                 print("Decrypted Data (hex):", decrypted_payload.hex())
+#                 print("Decrypted Data (utf-8):", decrypted_payload.decode('utf-8', errors='ignore'))
+#             except Exception as e:
+#                 print("Decryption failed:", e)
+
+#     time.sleep(0.05)
 
 while True:
     if(ser.in_waiting > 0):
