@@ -21,24 +21,22 @@ def compute_hash(data_bytes, number_of_bytes):
 
 # def decryptRSA(data_bytes, number_of_bytes)
 
-KEY = b'2b7e151628aed2a6abf7158809cf4f3c' # Must match the STM32 key
+KEY = bytes([0x2b, 0x7e, 0x15, 0x16, 0x28, 0xae, 0xd2, 0xa6, 0xab, 0xf7, 0x15, 0x88, 0x09, 0xcf, 0x4f, 0x3c])
 
 while True:
     if(ser.in_waiting > 0):
         bs = ser.read(ser.in_waiting)
         print("Data received:", bs.hex())  # Read and print the received data
         
-        iv = bs[0:16]
-        ciphertext = bs[16:]
+        ciphertext = bs
         
-        cipher = Cipher(algorithms.AES(KEY), modes.CBC(iv), backend=default_backend())
+        cipher = Cipher(algorithms.AES(KEY), modes.ECB(), backend=default_backend())
         decryptor = cipher.decryptor()
         
         try:
             decrypted_payload = decryptor.update(ciphertext) + decryptor.finalize()
             print("AES Decryption Successful!")
             print("Decrypted Data (hex):", decrypted_payload.hex())
-            print("Decrypted Data (utf-8):", decrypted_payload.decode('utf-8', errors='ignore'))
         except Exception as e:
             print("Decryption failed:", e)
 
