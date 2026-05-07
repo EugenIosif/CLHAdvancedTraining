@@ -122,23 +122,22 @@ void encryptU32WithRSA(uint32_t * inputValue, uint64_t * outputValue)
 	}
 }
 
-// uint8_t * prepareTransmission(uint8_t * transmissionBuffer, uint8_t size)
-// {
-//  static uint8_t buffer[TRANSMISSION_BYTE_LEN] = {0};
-//  //reset the previous content of buffer
-//  memset(buffer, 0x00, sizeof(buffer));
-//  if(transmissionBuffer != NULL && size > 0)
-//  {
-//     uint32ToBytes tempValue;
-//     memcpy(tempValue.bytes)
-//     tempValue.value = computeHash(transmissionBuffer, size);
-   
-//     // memcpy(&buffer[0], tempValue.bytes, 4);
-//    memcpy(&buffer[0], returnArray, 4);
-//    memcpy(&buffer[TRANSMISSION_BYTE_LEN - size], transmissionBuffer, size);
-//  }
-//  return buffer;
-// }
+uint8_t * prepareTransmission(uint8_t * transmissionBuffer, uint8_t size)
+{
+ static uint8_t buffer[TRANSMISSION_BYTE_LEN] = {0};
+ //reset the previous content of buffer
+ memset(buffer, 0x00, sizeof(buffer));
+ if(transmissionBuffer != NULL && size > 0)
+ {
+    uint32ToBytes tempValue;
+    tempValue.value = 0;
+    tempValue.value = computeHash(transmissionBuffer, size);
+    
+    memcpy(&buffer[0], tempValue.bytes, 4);
+    memcpy(&buffer[TRANSMISSION_BYTE_LEN - size], transmissionBuffer, size);
+ }
+ return buffer;
+}
 
 uint32_t computeHash(const uint8_t *bytes, size_t numberOfBytes) {
     uint32_t hash = 0x811c9dc5;
@@ -246,6 +245,7 @@ int main(void)
 
       returnPublicKey(returnBuffer, 16);
       AES_ECB_encrypt(&ctx, returnBuffer);
+      
       HAL_UART_Transmit(&huart1, returnBuffer, 16, HAL_MAX_DELAY);	  
 	    /* ..... Perform your action ..... */
     }
