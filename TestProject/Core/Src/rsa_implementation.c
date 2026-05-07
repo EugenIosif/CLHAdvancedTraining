@@ -5,13 +5,14 @@
 #include <string.h>
 #include <time.h>
 
-// Key Generation
-void generate_and_check_rsa_keys(uint8_t n_key[8], uint8_t e_key[8], uint8_t d_key[8]);
+#include "rsa_implementation.h"
 
-uint8_t RSA_n[8] = {0xE9, 0xCB, 0x9A, 0x6F, 0x4E, 0x79, 0x26, 0x00};
-uint8_t RSA_e[8] = {0x01, 0x00, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00};
-uint8_t RSA_d[8] = {0x5D, 0x2D, 0xEE, 0xE2, 0xE6, 0x97, 0x1B, 0x00};
-
+//static const uint8_t RSA_n[8] = {0xE9, 0xCB, 0x9A, 0x6F, 0x4E, 0x79, 0x26, 0x00};
+//static const uint8_t RSA_e[8] = {0x01, 0x00, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00};
+//static const uint8_t RSA_d[8] = {0x5D, 0x2D, 0xEE, 0xE2, 0xE6, 0x97, 0x1B, 0x00};
+uint8_t RSA_n[8] = {0};
+uint8_t RSA_e[8] = {0};
+uint8_t RSA_d[8] = {0};
 // --- Helper Functions ---
 
 /**
@@ -35,7 +36,7 @@ uint64_t u8_array_to_u64(const uint8_t arr[8]) {
 }
 
 /**
- * @brief Returns the pulic key in a 16 byte array (e, n)
+ * @brief Returns the public key in a 16 byte array (e, n)
  */
 void returnPublicKey(uint8_t * publicKey, uint8_t size)
 {
@@ -176,6 +177,12 @@ void generate_and_check_rsa_keys(uint8_t n_key[8], uint8_t e_key[8], uint8_t d_k
 
         // 2. Calculate n and phi(n)
         n_val = (uint64_t)p * q;
+
+//        if(n_val <= UINT32_MAX)
+//        {
+//            continue;
+//        }
+
         uint64_t phi_n = (uint64_t)(p - 1) * (q - 1);
 
         // 3. Choose public exponent e. e=65537 is a common and efficient choice.
@@ -207,8 +214,20 @@ void rsa_encrypt(const uint8_t message[8], uint8_t ciphertext[8], const uint8_t 
     uint64_t e = u8_array_to_u64(e_key);
     uint64_t n = u8_array_to_u64(n_key);
 
+    // printf("\n\r0x");
+    // for(uint8_t i = 0; i<8; i++)
+    // {
+    //     printf("%2x", message[i]);
+    // }
+    // printf("\n\r");
+
+
     if (m >= n) {
-        printf("Error: Message is larger than or equal to modulus n. Cannot encrypt.\n");
+        printf("Error: Message is larger than or equal to modulus n. Cannot encrypt.\n\r");
+        printf("m = %llu\n\r", m);
+        printf("n = %llu\n\r", n);
+        
+
         return;
     }
 
