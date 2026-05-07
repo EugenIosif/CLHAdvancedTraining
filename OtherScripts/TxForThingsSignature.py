@@ -28,17 +28,22 @@ while True:
         bs = ser.read(ser.in_waiting)
         print("Data received:", bs.hex())  # Read and print the received data
         
-        ciphertext = bs
-        
-        cipher = Cipher(algorithms.AES(KEY), modes.ECB(), backend=default_backend())
-        decryptor = cipher.decryptor()
-        
-        try:
-            decrypted_payload = decryptor.update(ciphertext) + decryptor.finalize()
-            print("AES Decryption Successful!")
-            print("Decrypted Data (hex):", decrypted_payload.hex())
-        except Exception as e:
-            print("Decryption failed:", e)
+        received_hash = bs[0:4]
+        ciphertext = bs[4:20]
+        computed_hash = compute_hash(bs[4:20], 16)
+
+        if computed_hash == int.from_bytes(received_hash, 'little'):
+            #if the hashes match, do the rest
+            print("HASH matches! Here is the payload bytes:") 
+            print("Received Data (hex):", ciphertext.hex())       
+            cipher = Cipher(algorithms.AES(KEY), modes.ECB(), backend=default_backend())
+            decryptor = cipher.decryptor()            
+            try:
+                decrypted_payload = decryptor.update(ciphertext) + decryptor.finalize()
+                print("AES Decryption Successful!")
+                print("Decrypted Data (hex):", decrypted_payload.hex())
+            except Exception as e:
+                print("Decryption failed:", e)
 
     time.sleep(0.05)
 
