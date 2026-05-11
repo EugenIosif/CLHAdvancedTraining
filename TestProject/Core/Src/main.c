@@ -95,13 +95,34 @@ static void MX_USART1_UART_Init(void);
 //static void MX_USART2_UART_Init(void);
 /* USER CODE BEGIN PFP */
 
-uint32_t computeHash (const uint8_t * bytes, size_t numberOfBytes);
 uint8_t * prepareTransmission(uint8_t * transmissionBuffer, uint8_t size);
 void simpleXORencrypt (uint8_t * bufferToEncrypt, uint8_t size);
+HAL_StatusTypeDef ComputeSHA256FromMemory(uint32_t startAddress, uint32_t length, uint8_t *outputHash);
+
 /* USER CODE END PFP */
 
 /* Private user code ---------------------------------------------------------*/
 /* USER CODE BEGIN 0 */
+
+HAL_StatusTypeDef ComputeSHA256FromMemory(uint32_t startAddress, uint32_t length, uint8_t *outputHash)
+{
+    HAL_StatusTypeDef status;
+    uint32_t currentAddress = startAddress;
+
+    status = HAL_HASHEx_SHA256_Start(&hhash, (uint8_t*)currentAddress, length, outputHash, HAL_MAX_DELAY);
+    status = HAL_HASHEx_SHA256_Accmlt(&hhash, (uint8_t*)currentAddress, length);
+
+    uint8_t outputHashnew[32]; // SHA-256 produces a 32-byte hash
+
+    memcpy(outputHashnew, outputHash, 32);
+
+    status = HAL_HASHEx_SHA256_Accmlt_End(&hhash, (uint8_t*)currentAddress, length,outputHash,HAL_MAX_DELAY);
+
+    // Copy the final hash result back to outputHashnew or outputHash
+    memcpy(outputHash, outputHashnew, 32);
+
+    return status;
+}
 
 void encryptU32WithRSA(uint32_t * inputValue, uint64_t * outputValue)
 {
@@ -122,31 +143,35 @@ void encryptU32WithRSA(uint32_t * inputValue, uint64_t * outputValue)
 	}
 }
 
-uint8_t * prepareTransmission(uint8_t * transmissionBuffer, uint8_t size)
+uint8_t * prepareTransmission(uint8_t * inputBuffer, uint8_t size)
 {
  static uint8_t buffer[TRANSMISSION_BYTE_LEN] = {0};
  //reset the previous content of buffer
  memset(buffer, 0x00, sizeof(buffer));
- if(transmissionBuffer != NULL && size > 0)
+ if(inputBuffer != NULL && size > 0)
  {
     uint32ToBytes tempValue;
     tempValue.value = 0;
-    tempValue.value = computeHash(transmissionBuffer, size);
+    // tempValue.value = computeHash(inputBuffer, size);
+  
+    //!!ToDo ComputeSHA256FromMemory()
     
     memcpy(&buffer[0], tempValue.bytes, 4);
-    memcpy(&buffer[TRANSMISSION_BYTE_LEN - size], transmissionBuffer, size);
+    memcpy(&buffer[TRANSMISSION_BYTE_LEN - size], inputBuffer, size);
  }
  return buffer;
 }
 
-uint32_t computeHash(const uint8_t *bytes, size_t numberOfBytes) {
-    uint32_t hash = 0x811c9dc5;
-    for(size_t i = 0; i < numberOfBytes; i++) {
-        hash ^= bytes[i];
-        hash *= 0x01000193;
-    }
-    return hash;
-}
+/*
+!!!!!!!!!!!!!! FUNCTION USED TO EXEMPLIFY THE UPDATE IN A SECUREBOOT APPLICATION !!!!!!!!!!!!!!
+*/
+
+
+
+/*
+!!!!!!!!!!!!!! FUNCTION USED TO EXEMPLIFY THE UPDATE IN A SECUREBOOT APPLICATION !!!!!!!!!!!!!!
+*/
+
 
 /* USER CODE END 0 */
 
@@ -245,9 +270,9 @@ int main(void)
       BSP_LED_Toggle(LED_RED);
 
       returnPublicKey(returnBuffer, 16);
-      AES_ECB_encrypt(&ctx, returnBuffer);      
-      memcpy(transmissionBuffer, prepareTransmission(returnBuffer, 16), 20);      
-      HAL_UART_Transmit(&huart1, transmissionBuffer, 20, HAL_MAX_DELAY);	  
+      AES_ECB_encrypt(&ctx, returnBuffer);
+      memcpy(transmissionBuffer, prepareTransmission(returnBuffer, 16), 20);
+      HAL_UART_Transmit(&huart1, transmissionBuffer, 20, HAL_MAX_DELAY);
 	    /* ..... Perform your action ..... */
     }
     /* USER CODE END WHILE */
