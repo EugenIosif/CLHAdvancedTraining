@@ -178,11 +178,6 @@ void generate_and_check_rsa_keys(uint8_t n_key[8], uint8_t e_key[8], uint8_t d_k
         // 2. Calculate n and phi(n)
         n_val = (uint64_t)p * q;
 
-//        if(n_val <= UINT32_MAX)
-//        {
-//            continue;
-//        }
-
         uint64_t phi_n = (uint64_t)(p - 1) * (q - 1);
 
         // 3. Choose public exponent e. e=65537 is a common and efficient choice.
