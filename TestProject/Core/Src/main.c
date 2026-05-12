@@ -331,6 +331,7 @@ int main(void)
       HAL_UART_Transmit(&huart1, transmissionBuffer, 20, HAL_MAX_DELAY);
 
       HAL_Delay(1000);
+      
       memcpy(updateBuffer, prepareTransmission((uint8_t *)replaceWithEncryptedData, 208), 240);
       HAL_UART_Transmit(&huart1, updateBuffer, 240, HAL_MAX_DELAY);
 
