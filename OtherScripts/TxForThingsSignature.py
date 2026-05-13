@@ -5,6 +5,11 @@ import hashlib
 from cryptography.hazmat.primitives.ciphers import Cipher, algorithms, modes
 from cryptography.hazmat.backends import default_backend
 
+
+d_int = 9331878932546167513
+e_int = 65537
+n_int = 18446743979220271189
+
 ser = serial.Serial(
     port='COM9',
     baudrate=115200,
@@ -39,7 +44,7 @@ def getPublicKey():
                 print("\nKey HASH matches! Here is the payload bytes:") 
                 print("Received Data (hex):", ciphertext.hex())
                 cipher = Cipher(algorithms.AES(KEY), modes.ECB(), backend=default_backend())
-                decryptor = cipher.decryptor()            
+                decryptor = cipher.decryptor()
                 try:
                     decrypted_payload = decryptor.update(ciphertext) + decryptor.finalize()
                     print("AES Decryption Successful!")
@@ -59,7 +64,7 @@ def getPublicKey():
             
             return
 
-        time.sleep(0.5)
+        time.sleep(0.8)
 
 def getFunctionPayload():
     while True:
@@ -89,16 +94,11 @@ def getFunctionPayload():
                 decrypted_chunk = pow(chunk_int, e_int, n_int).to_bytes(8, 'big')
                 decrypted_HASH.extend(decrypted_chunk)
             
-            # for i in range(0, 32, 8):
-            #     chunk = received_signature[i:i+8]
-            #     # chunk_int = int.from_bytes(chunk, 'big')
-            #     decrypted_chunk = chunk ^ 0xFF
-            #     decrypted_HASH.extend(decrypted_chunk)
-
             #if the decrypted HASH is the same as the computed HASH, we know that: 
             #1: the payload was transmitted without error
             #2: the party that sent us the payload has the correct private key
-            if decrypted_HASH == computed_hash:
+            # if decrypted_HASH == computed_hash:
+            if received_signature == computed_hash:
                 print("\nPayload HASH matches! Here is the payload bytes:") 
                 print("Received Data (hex):", bs[32:240].hex())
             else:
@@ -108,6 +108,25 @@ def getFunctionPayload():
         time.sleep(0.8)
     return
 
+def testfunction():
+    while True:
+        if(ser.in_waiting > 0):
+            bs = ser.read(ser.in_waiting)
+            print("test data received:", bs.hex())  # Read and print the received data
+            
+            # e_int = int.from_bytes(RSA_e, 'big')
+            # n_int = int.from_bytes(RSA_n, 'big')
+            m_int = int.from_bytes(bs[0:8], 'big')
+            decrypted = pow(m_int, d_int, n_int).to_bytes(8, 'big').hex()
+
+            print("decrypted: ", decrypted)
+           
+            return
+
+        time.sleep(0.5)
+
+
 if __name__ == "__main__":
-    getPublicKey()
-    getFunctionPayload()
+    # getPublicKey()
+    # getFunctionPayload()
+    testfunction()
