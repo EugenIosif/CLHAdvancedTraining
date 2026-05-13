@@ -22,6 +22,8 @@ Core/Src/main.o: ../Core/Src/main.c ../Core/Inc/main.h \
  ../Drivers/STM32U5xx_HAL_Driver/Inc/stm32u5xx_hal_adc.h \
  ../Drivers/STM32U5xx_HAL_Driver/Inc/stm32u5xx_ll_adc.h \
  ../Drivers/STM32U5xx_HAL_Driver/Inc/stm32u5xx_hal_adc_ex.h \
+ ../Drivers/STM32U5xx_HAL_Driver/Inc/stm32u5xx_hal_crc.h \
+ ../Drivers/STM32U5xx_HAL_Driver/Inc/stm32u5xx_hal_crc_ex.h \
  ../Drivers/STM32U5xx_HAL_Driver/Inc/stm32u5xx_hal_flash.h \
  ../Drivers/STM32U5xx_HAL_Driver/Inc/stm32u5xx_hal_flash_ex.h \
  ../Drivers/STM32U5xx_HAL_Driver/Inc/stm32u5xx_hal_hash.h \
@@ -39,7 +41,8 @@ Core/Src/main.o: ../Core/Src/main.c ../Core/Inc/main.h \
  ../Core/Inc/stm32u5xx_nucleo_conf.h \
  ../Drivers/BSP/STM32U5xx_Nucleo/stm32u5xx_nucleo_errno.h \
  ../Drivers/STM32U5xx_HAL_Driver/Inc/stm32u5xx_hal_def.h \
- ../Core/Inc/memController.h ../Core/Inc/aes.h
+ ../Core/Inc/memController.h ../Core/Inc/aes.h \
+ ../Core/Inc/rsa_implementation.h
 ../Core/Inc/main.h:
 ../Drivers/STM32U5xx_HAL_Driver/Inc/stm32u5xx_hal.h:
 ../Core/Inc/stm32u5xx_hal_conf.h:
@@ -64,6 +67,8 @@ Core/Src/main.o: ../Core/Src/main.c ../Core/Inc/main.h \
 ../Drivers/STM32U5xx_HAL_Driver/Inc/stm32u5xx_hal_adc.h:
 ../Drivers/STM32U5xx_HAL_Driver/Inc/stm32u5xx_ll_adc.h:
 ../Drivers/STM32U5xx_HAL_Driver/Inc/stm32u5xx_hal_adc_ex.h:
+../Drivers/STM32U5xx_HAL_Driver/Inc/stm32u5xx_hal_crc.h:
+../Drivers/STM32U5xx_HAL_Driver/Inc/stm32u5xx_hal_crc_ex.h:
 ../Drivers/STM32U5xx_HAL_Driver/Inc/stm32u5xx_hal_flash.h:
 ../Drivers/STM32U5xx_HAL_Driver/Inc/stm32u5xx_hal_flash_ex.h:
 ../Drivers/STM32U5xx_HAL_Driver/Inc/stm32u5xx_hal_hash.h:
@@ -83,3 +88,4 @@ Core/Src/main.o: ../Core/Src/main.c ../Core/Inc/main.h \
 ../Drivers/STM32U5xx_HAL_Driver/Inc/stm32u5xx_hal_def.h:
 ../Core/Inc/memController.h:
 ../Core/Inc/aes.h:
+../Core/Inc/rsa_implementation.h:
