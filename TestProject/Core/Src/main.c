@@ -117,6 +117,7 @@ void bytes_to_hex_string(uint8_t * inbuff, uint8_t size, uint8_t * outbuff)
         sprintf((char*)&outbuff[i * 2], "%02x", inbuff[i]);
     }
 }
+
 HAL_StatusTypeDef ComputeSHA256FromMemory(uint32_t startAddress, uint32_t length, uint8_t *outputHash)
 {
     HAL_StatusTypeDef status;
@@ -125,35 +126,6 @@ HAL_StatusTypeDef ComputeSHA256FromMemory(uint32_t startAddress, uint32_t length
     status = HAL_HASHEx_SHA256_Start(&hhash, (uint8_t*)startAddress, length, outputHash, HAL_MAX_DELAY);
     return status;
 }
-
-// HAL_StatusTypeDef ComputeSHA256FromMemory(uint32_t startAddress, uint32_t length, uint8_t *outputHash)
-// {
-//         // (1) Create input buffer of size one block (512 bit, 64 byte) and initialize it with all 0-bytes
-//     uint8_t ibuf[64];
-//     memset(ibuf, 0, sizeof(ibuf));
-
-//     // (2) Create output buffer of size 256 bit, 32 byte (setting it to all 1-bytes shouldn't be relevant) 
-//     uint8_t obuf[32];
-//     memset(obuf, 1, sizeof(obuf));
-
-//     // (3) Compute the digest based on ibuf and store it into obuf
-//     HAL_StatusTypeDef rv = HAL_HASHEx_SHA256_Start(&hhash, ibuf, 64, obuf, 10);
-//     char debug_msg[64];
-
-//     // (4) Print an error message or the hash digest.
-//     if(rv != HAL_OK){
-//         sprintf(debug_msg, "ERROR: HAL_HASHEx_SHA256_Start failed on line %i\r\n", __LINE__);
-//     }
-//     else{
-
-//     	uint8_t hash_buf[32 * 3];                  // For one byte of the output digest, e.g. value 24, we write THREE characters (except for last byte of output, we only write TWO characters).
-//                                                                 // Here, for value 24 we would write "18:" for 24 not the last byte and "18" if it is the last byte.
-//         memset(hash_buf, 1, sizeof(hash_buf));
-//         bytes_to_hex_string(obuf, 32, hash_buf);
-//         memcpy(outputHash, hash_buf, 32);
-//     }
-//     return rv;
-// }
 
 void encryptU32WithRSA(uint32_t * inputValue, uint64_t * outputValue)
 {
@@ -193,11 +165,19 @@ uint8_t * prepareTransmission(uint8_t * inputBuffer, uint8_t size)
     }
     else
     {
-      //we are here because we are trying to transmit The contents of a function to the other side. 
+      //we are here because we are trying to transmit The contents of a function to the other side.
       //SHA256 is used for this
       uint8_t ouputHash[32];
       memset(ouputHash, 0x00, 32);
-      ComputeSHA256FromMemory((uint32_t)replaceWithEncryptedData, 64, ouputHash);
+      ComputeSHA256FromMemory((uint32_t)replaceWithEncryptedData, 208, ouputHash);
+
+      for(uint8_t i = 0; i < 32; i+=8)
+	  {
+        uint8_t tempArray[8] = {0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00};
+        SIGN_CHUNK(ouputHash+i, tempArray);
+        memcpy(ouputHash+i, tempArray, 8);
+	  }
+
       memcpy(&buffer[0], ouputHash, 32);
       memcpy(&buffer[32], inputBuffer, size);
     }
@@ -213,17 +193,6 @@ uint32_t computeHash(const uint8_t *bytes, size_t numberOfBytes) {
     }
     return hash;
 }
-
-/*
-!!!!!!!!!!!!!! FUNCTION USED TO EXEMPLIFY THE UPDATE IN A SECUREBOOT APPLICATION !!!!!!!!!!!!!!
-*/
-
-
-
-/*
-!!!!!!!!!!!!!! FUNCTION USED TO EXEMPLIFY THE UPDATE IN A SECUREBOOT APPLICATION !!!!!!!!!!!!!!
-*/
-
 
 /* USER CODE END 0 */
 
@@ -331,10 +300,10 @@ int main(void)
       HAL_UART_Transmit(&huart1, transmissionBuffer, 20, HAL_MAX_DELAY);
 
       HAL_Delay(1000);
-      
-      memcpy(updateBuffer, prepareTransmission((uint8_t *)replaceWithEncryptedData, 208), 240);
-      HAL_UART_Transmit(&huart1, updateBuffer, 240, HAL_MAX_DELAY);
 
+      memcpy(updateBuffer, prepareTransmission((uint8_t *)replaceWithEncryptedData, 208), 240);
+	  
+      HAL_UART_Transmit(&huart1, updateBuffer, 240, HAL_MAX_DELAY);
 	    /* ..... Perform your action ..... */
     }
     /* USER CODE END WHILE */

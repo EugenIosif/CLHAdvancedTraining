@@ -7,7 +7,7 @@
 ../Core/Src/rsa_implementation.c:101:9:mod_inverse	4
 ../Core/Src/rsa_implementation.c:125:6:is_prime	15
 ../Core/Src/rsa_implementation.c:154:10:generate_prime	2
-../Core/Src/rsa_implementation.c:166:6:generate_and_check_rsa_keys	5
-../Core/Src/rsa_implementation.c:207:6:rsa_encrypt	2
-../Core/Src/rsa_implementation.c:233:6:rsa_decrypt	1
-../Core/Src/rsa_implementation.c:242:6:print_key_array	2
+../Core/Src/rsa_implementation.c:166:6:generate_and_check_rsa_keys	4
+../Core/Src/rsa_implementation.c:216:6:rsa_encrypt	2
+../Core/Src/rsa_implementation.c:230:6:rsa_decrypt	2
+../Core/Src/rsa_implementation.c:243:6:print_key_array	2

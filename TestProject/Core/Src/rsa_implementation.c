@@ -164,19 +164,27 @@ uint32_t generate_prime(void) {
 // --- Main RSA Function Implementations ---
 
 void generate_and_check_rsa_keys(uint8_t n_key[8], uint8_t e_key[8], uint8_t d_key[8]) {
+    memset(n_key, 0x00, 8);
+    memset(e_key, 0x00, 8);
+    memset(d_key, 0x00, 8);
+
     uint64_t n_val, e_val, d_val_64;
     
     // Loop until valid keys are generated and verified
     while (1) {
         // 1. Find two distinct 32-bit prime numbers p and q
-        uint32_t p = generate_prime();
+//        uint32_t p = generate_prime();
+        uint32_t p;
         uint32_t q;
-        do {
-            q = generate_prime();
-        } while (p == q);
+//        do {
+//            q = generate_prime();
+//        } while (p == q);
 
         // 2. Calculate n and phi(n)
-        n_val = (uint64_t)p * q;
+        // n_val = (uint64_t)p * q;
+        p = 4294967291;
+        q = 4294967279;
+        n_val = 18446743979220271189;
 
         uint64_t phi_n = (uint64_t)(p - 1) * (q - 1);
 
@@ -188,7 +196,8 @@ void generate_and_check_rsa_keys(uint8_t n_key[8], uint8_t e_key[8], uint8_t d_k
         }
 
         // 4. Calculate private exponent d, the modular inverse of e mod phi(n)
-        int64_t d_val = mod_inverse(e_val, phi_n);
+        // int64_t d_val = mod_inverse(e_val, phi_n);
+        uint64_t d_val = 9331878932546167513;
         
         // 5. Check keys: (d * e) % phi_n must be 1
         if (d_val > 0 && modular_mul(d_val, e_val, phi_n) == 1) {
@@ -209,20 +218,8 @@ void rsa_encrypt(const uint8_t message[8], uint8_t ciphertext[8], const uint8_t 
     uint64_t e = u8_array_to_u64(e_key);
     uint64_t n = u8_array_to_u64(n_key);
 
-    // printf("\n\r0x");
-    // for(uint8_t i = 0; i<8; i++)
-    // {
-    //     printf("%2x", message[i]);
-    // }
-    // printf("\n\r");
-
-
     if (m >= n) {
         printf("Error: Message is larger than or equal to modulus n. Cannot encrypt.\n\r");
-        printf("m = %llu\n\r", m);
-        printf("n = %llu\n\r", n);
-        
-
         return;
     }
 
@@ -235,6 +232,10 @@ void rsa_decrypt(const uint8_t ciphertext[8], uint8_t decrypted_message[8], cons
     uint64_t d = u8_array_to_u64(d_key);
     uint64_t n = u8_array_to_u64(n_key);
 
+    if (c >= n) {
+        printf("Error: Message is larger than or equal to modulus n. Cannot encrypt.\n\r");
+        return;
+    }
     uint64_t m = modular_pow(c, d, n);
     u64_to_u8_array(m, decrypted_message);
 }
