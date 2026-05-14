@@ -5,10 +5,10 @@ import hashlib
 from cryptography.hazmat.primitives.ciphers import Cipher, algorithms, modes
 from cryptography.hazmat.backends import default_backend
 
-
-# d_int = 9331878932546167513
-# e_int = 65537
-# n_int = 18446743979220271189
+EXCHANGEINITIALIZATION = 0x01
+SECRETTRANSMISSION = 0x03
+SECRETRECEIVED = 0x02
+ENCRYPEDMESSAGETRANSMISSION = 0x04
 
 ser = serial.Serial(
     port='COM9',
@@ -25,9 +25,87 @@ def compute_hash(data_bytes, number_of_bytes):
         hash_value = (hash_value * 0x01000193) & 0xFFFFFFFF
     return hash_value
 
-# def decryptRSA(data_bytes, number_of_bytes)
-
 KEY = bytes([0x2b, 0x7e, 0x15, 0x16, 0x28, 0xae, 0xd2, 0xa6, 0xab, 0xf7, 0x15, 0x88, 0x09, 0xcf, 0x4f, 0x3c])
+
+#definitions for diffie hellman
+e = 2
+n = 18446744073709551557
+private_intermediary = 123456789
+state = "IDLE"
+
+def executeDiffieHellman():
+    global e, n, private_intermediary, state
+    last_printed_state = None
+    while True:
+        if state == "IDLE":
+            if last_printed_state != state:
+                print("\nState: IDLE")
+                last_printed_state = state
+            
+            if(ser.in_waiting > 0):
+                bs = ser.read(ser.in_waiting)  # Clear the buffer
+                print("Data received:", bs.hex())  # Read and print the received data
+
+                command = bs[0]
+                val1 = bs[1:9]  # Drop the value of the 4 bytes, we don't need it at this point
+
+                if command == EXCHANGEINITIALIZATION:  # Example command to start negotiation
+                    state = "NEGOTIATING"
+                else:
+                    state = "CLOSED"
+        
+        elif state == "NEGOTIATING":
+            if last_printed_state != state:
+                print("\nState: NEGOTIATING")
+                last_printed_state = state
+
+            transmitvalue = bytes([SECRETTRANSMISSION]) + pow(e, private_intermediary, n).to_bytes(8, byteorder='big')  # Calculate the value to send
+            print(f"Transmitting value: {int.from_bytes(transmitvalue[1:9], byteorder='big')}")  # Print the value being transmitted for debugging
+            
+            time.sleep(0.5)  # Wait for the microcontroller to be ready. 1 seconds
+            
+            ser.write(transmitvalue)  # send the calculated secret on UART
+            
+            state = "WAITINGFORSECRET"
+        
+        elif state == "WAITINGFORSECRET":
+            if last_printed_state != state:
+                print("\nState: WAITINGFORSECRET")
+                
+                last_printed_state = state        
+            if(ser.in_waiting > 0):
+                bs = ser.read(ser.in_waiting)  # Clear the buffer
+                print("Data received:", bs)  # Read and print the received data
+                
+                command = bs[0]
+                val1 = bs[1:9]
+                
+                if command == SECRETRECEIVED:
+                    sharedsecret = int.from_bytes(val1, byteorder='big')  # Convert the received bytes to an integer
+                    print(f"Shared secret received: {sharedsecret}")  # Print the shared secret for debugging
+
+                    sharedsecret = pow(sharedsecret, private_intermediary, n)  # Calculate the shared secret
+                    print(f"Calculated shared secret: {sharedsecret}")  # Print the calculated shared secret for debugging
+                    
+                    #save the sharedsecret in the 16 byte KEY used for AES
+                    ss_bytes = sharedsecret.to_bytes(8, byteorder='big')
+                    key_list = []
+                    for i in range(8):
+                        key_list.append(ss_bytes[i])      # MSB, MSB-1...
+                        key_list.append(ss_bytes[7 - i])  # LSB, LSB+1...
+                    KEY = bytes(key_list)
+                
+                state = "CLOSED"
+        elif state == "CLOSED":
+            if last_printed_state != state:
+                print("\nState: CLOSED")
+                last_printed_state = state
+            
+            state = "IDLE"
+            return
+
+        time.sleep(0.05)
+    
 
 def getPublicKey():
     while True:
@@ -108,5 +186,6 @@ def getFunctionPayload():
         time.sleep(0.8)
 
 if __name__ == "__main__":
+    executeDiffieHellman()
     getPublicKey()
     getFunctionPayload()

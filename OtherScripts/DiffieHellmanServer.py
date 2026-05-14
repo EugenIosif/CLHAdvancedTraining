@@ -16,10 +16,8 @@ SECRETRECEIVED = 0x02
 ENCRYPEDMESSAGETRANSMISSION = 0x04
 
 e = 2
-n = 19
-mypublickey = 8
-#15
-sharedsecret = 0
+n = 18446744073709551557
+mypublickey = 123456789
 
 state = "IDLE"
 
