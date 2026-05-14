@@ -183,7 +183,7 @@ def getFunctionPayload():
                 print("the  computed HASH: ", computed_hash.hex())
                 print("the decrypted HASH: ", decrypted_HASH.hex())
             return
-        time.sleep(0.8)
+        time.sleep(1)
 
 if __name__ == "__main__":
     executeDiffieHellman()

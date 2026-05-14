@@ -2559,7 +2559,7 @@ void executeDiffieHellman(void)
             uart_data_tx[0] = SECRETTANSMISSION;
  800183a:	2302      	movs	r3, #2
  800183c:	f887 3054 	strb.w	r3, [r7, #84]	@ 0x54
-            u64_to_u8_array(dh_value, uart_data_tx+1);        
+            u64_to_u8_array(dh_value, uart_data_tx+1);
  8001840:	f107 0354 	add.w	r3, r7, #84	@ 0x54
  8001844:	3301      	adds	r3, #1
  8001846:	461a      	mov	r2, r3
