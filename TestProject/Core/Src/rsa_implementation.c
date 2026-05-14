@@ -182,9 +182,9 @@ void generate_and_check_rsa_keys(uint8_t n_key[8], uint8_t e_key[8], uint8_t d_k
 
         // 2. Calculate n and phi(n)
         // n_val = (uint64_t)p * q;
-        p = 4294967291;
-        q = 4294967279;
-        n_val = 18446743979220271189;
+        p = 4294967291ULL;
+        q = 4294967279ULL;
+        n_val = 18446743979220271189ULL;
 
         uint64_t phi_n = (uint64_t)(p - 1) * (q - 1);
 

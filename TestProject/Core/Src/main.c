@@ -171,13 +171,6 @@ uint8_t * prepareTransmission(uint8_t * inputBuffer, uint8_t size)
       memset(ouputHash, 0x00, 32);
       ComputeSHA256FromMemory((uint32_t)replaceWithEncryptedData, 208, ouputHash);
 
-      for(uint8_t i = 0; i < 32; i+=8)
-      {
-          uint8_t tempArray[8] = {0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00};
-          SIGN_CHUNK(ouputHash+i, tempArray);
-          memcpy(ouputHash+i, tempArray, 8);
-      }
-
       memcpy(&buffer[0], ouputHash, 32);
       memcpy(&buffer[32], inputBuffer, size);
     }
@@ -294,24 +287,21 @@ int main(void)
       BSP_LED_Toggle(LED_BLUE);
       BSP_LED_Toggle(LED_RED);
 
-      // returnPublicKey(returnBuffer, 16);
-      // AES_ECB_encrypt(&ctx, returnBuffer);
-      // memcpy(transmissionBuffer, prepareTransmission(returnBuffer, 16), 20);
-      // HAL_UART_Transmit(&huart1, transmissionBuffer, 20, HAL_MAX_DELAY);
+      returnPublicKey(returnBuffer, 16);
+      AES_ECB_encrypt(&ctx, returnBuffer);
+      memcpy(transmissionBuffer, prepareTransmission(returnBuffer, 16), 20);
+      HAL_UART_Transmit(&huart1, transmissionBuffer, 20, HAL_MAX_DELAY);
 
-      // HAL_Delay(1000);
+      HAL_Delay(1000);
 
-      // memcpy(updateBuffer, prepareTransmission((uint8_t *)replaceWithEncryptedData, 208), 240);
-	  
-      // HAL_UART_Transmit(&huart1, updateBuffer, 240, HAL_MAX_DELAY);
-
-      uint8_t inArray[8] = {0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08};
-      uint8_t outArray[8];
-      memset(outArray, 0x00, 8);
-
-      // SIGN_CHUNK(testArray, testArray);
-      RSA_ENCRYPTION_IF(inArray, outArray);
-      HAL_UART_Transmit(&huart1, outArray, 8, HAL_MAX_DELAY);
+      memcpy(updateBuffer, prepareTransmission((uint8_t *)replaceWithEncryptedData, 208), 240);
+	    for(uint8_t i = 0; i < 32; i+=8)
+      {
+          uint8_t tempArray[8] = {0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00};
+          SIGN_CHUNK(updateBuffer+i, tempArray);
+          memcpy(updateBuffer+i, tempArray, 8);
+      }
+      HAL_UART_Transmit(&huart1, updateBuffer, 240, HAL_MAX_DELAY);
 	    /* ..... Perform your action ..... */
     }
     /* USER CODE END WHILE */
