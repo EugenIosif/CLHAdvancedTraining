@@ -197,7 +197,7 @@ void generate_and_check_rsa_keys(uint8_t n_key[8], uint8_t e_key[8], uint8_t d_k
 
         // 4. Calculate private exponent d, the modular inverse of e mod phi(n)
         // int64_t d_val = mod_inverse(e_val, phi_n);
-        uint64_t d_val = 9331878932546167513;
+        uint64_t d_val = 9331878932546167513ULL;
         
         // 5. Check keys: (d * e) % phi_n must be 1
         if (d_val > 0 && modular_mul(d_val, e_val, phi_n) == 1) {

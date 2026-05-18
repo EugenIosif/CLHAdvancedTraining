@@ -229,7 +229,7 @@ void executeDiffieHellman(void)
                 u64_to_u8_array(DH_myPrivateIntermediary, privIntermediaryArr);
                 uint8_t shared_key_arr[8] = {0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00};
                 
-                rsa_encrypt(&uart_data_rx[1], shared_key_arr, privIntermediaryArr, nArr);
+                COMPUTE_DH_KEY(&uart_data_rx[1], shared_key_arr, privIntermediaryArr, nArr);
                 uint8_t keyBuffer[16];
                 memset(keyBuffer, 0x00, 16);
                 for(uint8_t i = 0; i < 16; i+=2)
@@ -253,11 +253,13 @@ void executeDiffieHellman(void)
             u64_to_u8_array(DH_e, eArr);
             u64_to_u8_array(DH_n, nArr);
             u64_to_u8_array(DH_myPrivateIntermediary, privIntArr);
-            rsa_encrypt(eArr, temporaryU64, privIntArr, nArr);
-            uint64_t dh_value = u8_array_to_u64(temporaryU64);
-
+            COMPUTE_DH_KEY(eArr, temporaryU64, privIntArr, nArr);
+            
             uart_data_tx[0] = SECRETTANSMISSION;
-            u64_to_u8_array(dh_value, uart_data_tx+1);
+            memcpy(uart_data_tx+1, temporaryU64, 8);
+            // uint64_t dh_value = u8_array_to_u64(temporaryU64);
+
+            // u64_to_u8_array(dh_value, uart_data_tx+1);
             HAL_UART_Transmit(&huart1, (uint8_t*)uart_data_tx, UART_DATA_LENGTH, HAL_MAX_DELAY);
 
             state = CLOSED;
