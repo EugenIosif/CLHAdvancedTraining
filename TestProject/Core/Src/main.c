@@ -41,7 +41,16 @@
 /* USER CODE BEGIN PD */
 
 #define REPLACEWITHENCRYPTEDDATA_FUNCLEN 240
-
+#define UART_DATA_LENGTH 9
+#define IDLE 0
+#define NEGOTIATING 1
+#define WAITINGFORSECRET 2
+#define RECEIVEENCRYPTEDMESSAGE 3
+#define CLOSED 4
+#define EXCHANGEINITIALIZATION 0x01
+#define SECRETTANSMISSION 0x02
+#define SECRETRECEIVED 0x03
+#define ENCRYPTEDMESSAGERECEPTION 0x04
 /* USER CODE END PD */
 
 /* Private macro -------------------------------------------------------------*/
@@ -79,6 +88,13 @@ SPI_HandleTypeDef hspi1;
 UART_HandleTypeDef huart1;
 UART_HandleTypeDef huart2;
 
+char buffer[100] = {0};
+uint8_t DH_e = 2;
+uint64_t DH_n = 18446744073709551557ULL;
+uint64_t DH_myPrivateIntermediary = 987654321ULL;
+
+uint8_t state = IDLE;
+
 /* USER CODE BEGIN PV */
 
 
@@ -102,7 +118,7 @@ static void MX_CRC_Init(void);
 uint32_t computeHash (const uint8_t * bytes, size_t numberOfBytes);
 uint8_t * prepareTransmission(uint8_t * transmissionBuffer, uint8_t size);
 void simpleXORencrypt (uint8_t * bufferToEncrypt, uint8_t size);
-HAL_StatusTypeDef ComputeSHA256FromMemory(uint32_t startAddress, uint32_t length, uint8_t *outputHash);
+HAL_StatusTypeDef ComputeSHA256WithHAL(uint32_t startAddress, uint32_t length, uint8_t *outputHash);
 void bytes_to_hex_string(uint8_t * inbuff, uint8_t size, uint8_t * outbuff);
 
 /* USER CODE END PFP */
@@ -118,7 +134,7 @@ void bytes_to_hex_string(uint8_t * inbuff, uint8_t size, uint8_t * outbuff)
     }
 }
 
-HAL_StatusTypeDef ComputeSHA256FromMemory(uint32_t startAddress, uint32_t length, uint8_t *outputHash)
+HAL_StatusTypeDef ComputeSHA256WithHAL(uint32_t startAddress, uint32_t length, uint8_t *outputHash)
 {
     HAL_StatusTypeDef status;
     memset(outputHash, 0x00, 32);
@@ -169,7 +185,7 @@ uint8_t * prepareTransmission(uint8_t * inputBuffer, uint8_t size)
       //SHA256 is used for this
       uint8_t ouputHash[32];
       memset(ouputHash, 0x00, 32);
-      ComputeSHA256FromMemory((uint32_t)replaceWithEncryptedData, 208, ouputHash);
+      ComputeSHA256WithHAL((uint32_t)replaceWithEncryptedData, 208, ouputHash);
 
       memcpy(&buffer[0], ouputHash, 32);
       memcpy(&buffer[32], inputBuffer, size);
@@ -185,6 +201,81 @@ uint32_t computeHash(const uint8_t *bytes, size_t numberOfBytes) {
         hash *= 0x01000193;
     }
     return hash;
+}
+
+void executeDiffieHellman(void)
+{
+    uint8_t uart_data_tx[UART_DATA_LENGTH] = {0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00};
+    uint8_t uart_data_rx[UART_DATA_LENGTH] = {0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00};
+
+    while(1)
+    {
+        if(state == IDLE)
+        {
+            uart_data_tx[0] = EXCHANGEINITIALIZATION; //signal the start of the exchange
+            HAL_UART_Transmit(&huart1, (uint8_t*)uart_data_tx, UART_DATA_LENGTH, HAL_MAX_DELAY);
+            BspButtonState = BUTTON_RELEASED;
+            state = WAITINGFORSECRET;
+        }
+        else if(state == WAITINGFORSECRET)
+        {
+            HAL_UART_Receive(&huart1, (uint8_t*)uart_data_rx, UART_DATA_LENGTH, HAL_MAX_DELAY);
+            if(uart_data_rx[0] == SECRETRECEIVED)
+            {
+                uint8_t privIntermediaryArr[8] = {0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00};
+                uint8_t nArr[8] = {0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00};
+
+                u64_to_u8_array(DH_n, nArr);
+                u64_to_u8_array(DH_myPrivateIntermediary, privIntermediaryArr);
+                uint8_t shared_key_arr[8] = {0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00};
+                
+                COMPUTE_DH_KEY(&uart_data_rx[1], shared_key_arr, privIntermediaryArr, nArr);
+                uint8_t keyBuffer[16];
+                memset(keyBuffer, 0x00, 16);
+                for(uint8_t i = 0; i < 16; i+=2)
+                {
+                    keyBuffer[i] = shared_key_arr[i];
+                    keyBuffer[i+1] = shared_key_arr[7-i];
+                }
+                WRITE_AES_KEY(keyBuffer);
+                state = NEGOTIATING;
+            }
+        }
+        else if(state == NEGOTIATING)
+        {
+            //Transition logic for NEGOCIATING
+            // uint32_t dh_value = simple_rsa_encrypt(e, mypublickey, n);
+            uint8_t temporaryU64[8] = {0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00};
+            uint8_t eArr[8] = {0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00};
+            uint8_t nArr[8] = {0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00};
+            uint8_t privIntArr[8] = {0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00};            
+
+            u64_to_u8_array(DH_e, eArr);
+            u64_to_u8_array(DH_n, nArr);
+            u64_to_u8_array(DH_myPrivateIntermediary, privIntArr);
+            COMPUTE_DH_KEY(eArr, temporaryU64, privIntArr, nArr);
+            
+            uart_data_tx[0] = SECRETTANSMISSION;
+            memcpy(uart_data_tx+1, temporaryU64, 8);
+            // uint64_t dh_value = u8_array_to_u64(temporaryU64);
+
+            // u64_to_u8_array(dh_value, uart_data_tx+1);
+            HAL_UART_Transmit(&huart1, (uint8_t*)uart_data_tx, UART_DATA_LENGTH, HAL_MAX_DELAY);
+
+            state = CLOSED;
+        }
+        
+        else if(state == CLOSED)
+        {
+            state = IDLE;
+            break;
+        }  
+        else
+        {
+            state = IDLE;
+            break;
+        }
+    }
 }
 
 /* USER CODE END 0 */
@@ -286,6 +377,10 @@ int main(void)
       BSP_LED_Toggle(LED_GREEN);
       BSP_LED_Toggle(LED_BLUE);
       BSP_LED_Toggle(LED_RED);
+
+      executeDiffieHellman();
+
+      HAL_Delay(1000);
 
       returnPublicKey(returnBuffer, 16);
       AES_ECB_encrypt(&ctx, returnBuffer);
