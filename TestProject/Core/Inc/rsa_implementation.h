@@ -12,6 +12,8 @@ extern uint8_t RSA_d[8];
 #define SIGN_CHUNK(a, b)        rsa_decrypt(a, b, RSA_d, RSA_n)
 #define KEY_GENERATION generate_and_check_rsa_keys(&RSA_n[0], &RSA_e[0], &RSA_d[0])
 
+#define COMPUTE_DH_KEY rsa_encrypt
+
  void rsa_encrypt(const uint8_t message[8], uint8_t ciphertext[8], const uint8_t e_key[8], const uint8_t n_key[8]);
  void rsa_decrypt(const uint8_t ciphertext[8], uint8_t decrypted_message[8], const uint8_t d_key[8], const uint8_t n_key[8]);
 
