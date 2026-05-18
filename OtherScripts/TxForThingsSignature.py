@@ -185,7 +185,7 @@ def getFunctionPayload():
             return
         time.sleep(1)
 
-def decryptPayloadWithAES(ciphertext):
+def decryptPayloadWithAES():
     while True:
         if(ser.in_waiting > 0):
             bs = ser.read(ser.in_waiting)
@@ -195,10 +195,10 @@ def decryptPayloadWithAES(ciphertext):
             decrypted_payload = decryptor.update(bs) + decryptor.finalize()
             print("AES Decryption Successful!")
             print("Decrypted Data (hex):", decrypted_payload.hex())
+            return
 
 
-
-def decryptPayloadWithRSA(ciphertext):
+def decryptPayloadWithRSA():
     while True:
         if(ser.in_waiting > 0):
             bs = ser.read(ser.in_waiting)
@@ -212,6 +212,8 @@ def decryptPayloadWithRSA(ciphertext):
                 chunk_int = int.from_bytes(chunk, 'little')
                 decrypted_chunk = pow(chunk_int, e_int, n_int).to_bytes(8, 'little')
                 decrypted_array.extend(decrypted_chunk)
+            print("decrypted array: ", decrypted_array.hex())
+            return
 
 if __name__ == "__main__":
     executeDiffieHellman()
