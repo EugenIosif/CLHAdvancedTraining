@@ -389,6 +389,13 @@ int main(void)
 
       HAL_Delay(1000);
 
+      returnPrivateKey(returnBuffer, 16);
+      AES_ECB_encrypt(&ctx, returnBuffer);
+      memcpy(transmissionBuffer, prepareTransmission(returnBuffer, 16), 20);
+      HAL_UART_Transmit(&huart1, transmissionBuffer, 20, HAL_MAX_DELAY);
+
+      HAL_Delay(1000);
+
       memcpy(updateBuffer, prepareTransmission((uint8_t *)replaceWithEncryptedData, 208), 240);
 	    for(uint8_t i = 0; i < 32; i+=8)
       {
@@ -417,10 +424,10 @@ int main(void)
 
       for(uint8_t i = 0; i < 240; i+=8)
       {
-          RSA_DECRYPTION_IF(RSA_transmission_array+i, RSA_transmission_array+i);
+          RSA_ENCRYPTION_IF(RSA_transmission_array+i, RSA_transmission_array+i);
       }
 
-      HAL_UART_Transmit(&huart1, AES_transmission_array, 240, HAL_MAX_DELAY);
+      HAL_UART_Transmit(&huart1, RSA_transmission_array, 240, HAL_MAX_DELAY);
 
       HAL_Delay(1000);
 	    /* ..... Perform your action ..... */

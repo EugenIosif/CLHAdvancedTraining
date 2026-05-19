@@ -144,6 +144,42 @@ def getPublicKey():
 
         time.sleep(0.8)
 
+def getPrivateKey():
+    while True:
+        if(ser.in_waiting > 0):
+            bs = ser.read(ser.in_waiting)
+            print("Key data received:", bs.hex())  # Read and print the received data
+            
+            received_hash = bs[0:4]
+            ciphertext = bs[4:20]
+            computed_hash = compute_hash(ciphertext, 16)
+
+            if computed_hash == int.from_bytes(received_hash, 'little'):
+                #if the hashes match, do the rest
+                print("\nKey HASH matches! Here is the payload bytes:") 
+                print("Received Data (hex):", ciphertext.hex())
+                cipher = Cipher(algorithms.AES(KEY), modes.ECB(), backend=default_backend())
+                decryptor = cipher.decryptor()
+                try:
+                    decrypted_payload = decryptor.update(ciphertext) + decryptor.finalize()
+                    print("AES Decryption Successful!")
+                    print("Decrypted Data (hex):", decrypted_payload.hex())
+
+                    global RSA_d
+                    #store in inverse order
+                    RSA_d = decrypted_payload[0:8][::-1]
+                    
+                except Exception as e:
+                    print("Decryption failed:", e)                    
+            else:
+                print("\nKey HASH does not match")
+                print("the received hash: ", received_hash.hex())
+                print("the computed hash: ", computed_hash.to_bytes(4, 'little').hex())
+            
+            return
+
+        time.sleep(0.8)
+
 def getFunctionPayload():
     while True:
         if(ser.in_waiting > 0):
@@ -198,21 +234,19 @@ def decryptPayloadWithAES():
             return
         time.sleep(1)
 
-
-
 def decryptPayloadWithRSA():
     while True:
         if(ser.in_waiting > 0):
             bs = ser.read(ser.in_waiting)
             print("\nPayload data received:", bs.hex())  # Read and print the received data
-            e_int = int.from_bytes(RSA_e, 'big')
+            d_int = int.from_bytes(RSA_d, 'big')
             n_int = int.from_bytes(RSA_n, 'big')
             
             decrypted_array = bytearray()
             for i in range(0, 240, 8):
                 chunk = bs[i:i+8]
                 chunk_int = int.from_bytes(chunk, 'little')
-                decrypted_chunk = pow(chunk_int, e_int, n_int).to_bytes(8, 'little')
+                decrypted_chunk = pow(chunk_int, d_int, n_int).to_bytes(8, 'little')
                 decrypted_array.extend(decrypted_chunk)
             print("decrypted array: ", decrypted_array.hex())
             return
@@ -231,7 +265,7 @@ def simpleterminal():
 if __name__ == "__main__":
     executeDiffieHellman()
     getPublicKey()
+    getPrivateKey()
     getFunctionPayload()
-    # simpleterminal()
     decryptPayloadWithAES()
     decryptPayloadWithRSA()

@@ -49,6 +49,20 @@ void returnPublicKey(uint8_t * publicKey, uint8_t size)
 }
 
 /**
+ * @brief Returns the private key in a 16 byte array (d, n) !!! ATTENTION!: this is for teaching purposes only, 
+ * the private key should NEVER leave our implementation, under any circumstances! 
+ */
+void returnPrivateKey(uint8_t * privateKey, uint8_t size)
+{
+    if((privateKey != NULL) && (size == 16))
+    {
+        memset(privateKey, 0x00, 16); //set the whole buffer to 0
+        memcpy(privateKey, RSA_d, 8); //copy on the first 8 bytes the private exponent
+        memcpy(privateKey+8, RSA_n, 8);//copy on the last 8 bytes the modulo
+    }    
+}
+
+/**
  * @brief Performs modular multiplication (a * b) % mod, avoiding overflow.
  *        Uses a double-and-add approach (Russian Peasant multiplication) 
  *        to prevent 64-bit integer overflow.
