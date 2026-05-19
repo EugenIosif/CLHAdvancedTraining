@@ -196,6 +196,8 @@ def decryptPayloadWithAES():
             print("AES Decryption Successful!")
             print("Decrypted Data (hex):", decrypted_payload.hex())
             return
+        time.sleep(1)
+
 
 
 def decryptPayloadWithRSA():
@@ -214,10 +216,22 @@ def decryptPayloadWithRSA():
                 decrypted_array.extend(decrypted_chunk)
             print("decrypted array: ", decrypted_array.hex())
             return
+        time.sleep(1)
+
+def simpleterminal():
+    print("simple terminal: \n")
+    while True:
+        if(ser.in_waiting > 0):
+            bs = ser.read(ser.in_waiting)  # Clear the buffer
+            print("\n\n\n\n", bs.hex())
+            time.sleep(0.5)
+    
+
 
 if __name__ == "__main__":
     executeDiffieHellman()
     getPublicKey()
     getFunctionPayload()
+    # simpleterminal()
     decryptPayloadWithAES()
     decryptPayloadWithRSA()
