@@ -219,26 +219,25 @@ def getFunctionPayload():
                 print("the  computed HASH: ", computed_hash.hex())
                 print("the decrypted HASH: ", decrypted_HASH.hex())
             return
-        time.sleep(1)
+        time.sleep(1.1)
 
 def decryptPayloadWithAES():
     while True:
         if(ser.in_waiting > 0):
             bs = ser.read(ser.in_waiting)
-            print("\nPayload data received:", bs.hex())  # Read and print the received data
+            print("\n AES encrypted data received:", bs.hex())  # Read and print the received data
             cipher = Cipher(algorithms.AES(KEY), modes.ECB(), backend=default_backend())
             decryptor = cipher.decryptor()
             decrypted_payload = decryptor.update(bs) + decryptor.finalize()
-            print("AES Decryption Successful!")
-            print("Decrypted Data (hex):", decrypted_payload.hex())
+            print("AES decrypted array:", decrypted_payload.hex())
             return
-        time.sleep(1)
+        time.sleep(1.5)
 
 def decryptPayloadWithRSA():
     while True:
         if(ser.in_waiting > 0):
             bs = ser.read(ser.in_waiting)
-            print("\nPayload data received:", bs.hex())  # Read and print the received data
+            print("\n RSA encrypted data received::", bs.hex())  # Read and print the received data
             d_int = int.from_bytes(RSA_d, 'big')
             n_int = int.from_bytes(RSA_n, 'big')
             
@@ -248,19 +247,17 @@ def decryptPayloadWithRSA():
                 chunk_int = int.from_bytes(chunk, 'little')
                 decrypted_chunk = pow(chunk_int, d_int, n_int).to_bytes(8, 'little')
                 decrypted_array.extend(decrypted_chunk)
-            print("decrypted array: ", decrypted_array.hex())
+            print("RSA decrypted array: ", decrypted_array.hex())
             return
-        time.sleep(1)
+        time.sleep(1.5)
 
-def simpleterminal():
-    print("simple terminal: \n")
+def printElapsedTime():
     while True:
         if(ser.in_waiting > 0):
             bs = ser.read(ser.in_waiting)  # Clear the buffer
-            print("\n\n\n\n", bs.hex())
-            time.sleep(0.5)
-    
-
+            print("\n\nElapsed time: ", int.from_bytes(bs, 'little'), " miliseconds")
+            # time.sleep(0.05)
+            return
 
 if __name__ == "__main__":
     executeDiffieHellman()
@@ -268,4 +265,6 @@ if __name__ == "__main__":
     getPrivateKey()
     getFunctionPayload()
     decryptPayloadWithAES()
+    printElapsedTime()
     decryptPayloadWithRSA()
+    printElapsedTime()
