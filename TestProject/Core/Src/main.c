@@ -406,30 +406,43 @@ int main(void)
       HAL_UART_Transmit(&huart1, updateBuffer, 240, HAL_MAX_DELAY);
 
       HAL_Delay(1000);
-
+      
       //AES encryption
       uint8_t AES_transmission_array[240] = {0x00};
       memcpy(AES_transmission_array, updateBuffer, 240);
+      uint32_t startTime = HAL_GetTick();
       for(uint8_t i = 0; i < 240; i+=16)
       {
         AES_ECB_encrypt(&ctx, AES_transmission_array+i); 
       }
+      uint32_t endTime = HAL_GetTick();
+
       HAL_UART_Transmit(&huart1, AES_transmission_array, 240, HAL_MAX_DELAY);
 
+      HAL_Delay(1000);
+
+      uint32_t elapsedTime = endTime - startTime;
+
+      HAL_UART_Transmit(&huart1, (uint8_t *)&elapsedTime, 4, HAL_MAX_DELAY);
       HAL_Delay(1000);
 
       //RSA encryption
       uint8_t RSA_transmission_array[240] = {0x00};
       memcpy(RSA_transmission_array, updateBuffer, 240);
-
+      startTime = HAL_GetTick();
       for(uint8_t i = 0; i < 240; i+=8)
       {
-          RSA_ENCRYPTION_IF(RSA_transmission_array+i, RSA_transmission_array+i);
+          RSA_ENCRYPTION_IF(RSA_transmission_array + i, RSA_transmission_array + i);
       }
+      endTime = HAL_GetTick();
 
       HAL_UART_Transmit(&huart1, RSA_transmission_array, 240, HAL_MAX_DELAY);
-
       HAL_Delay(1000);
+
+      elapsedTime = endTime - startTime;
+      HAL_UART_Transmit(&huart1, (uint8_t *)&elapsedTime, 4, HAL_MAX_DELAY);
+      HAL_Delay(1000);
+
 	    /* ..... Perform your action ..... */
     }
     /* USER CODE END WHILE */
