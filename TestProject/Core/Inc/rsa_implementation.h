@@ -1,7 +1,7 @@
 #ifndef RSA_IMPLEMENTATION_H
 #define RSA_IMPLEMENTATION_H
 
-#include "aes.h"
+#include "wolfssl/wolfcrypt/aes.h"
 
 extern uint8_t RSA_n[8];
 extern uint8_t RSA_e[8];

@@ -26,6 +26,9 @@
 #include <string.h>
 #include <stdbool.h>
 
+#include "wolfssl/wolfcrypt/sha256.h"
+#include "wolfssl/wolfcrypt/aes.h"
+
 #include <stm32u5xx_hal_def.h>
 #include "memController.h"
 #include "rsa_implementation.h"
@@ -351,8 +354,8 @@ int main(void)
 
   printf("\n\rWelcome to STM32 world !\n\r");
 
-  struct AES_ctx ctx;
-  AES_init_ctx(&ctx, AES_key);
+//  struct AES_ctx ctx;
+//  AES_init_ctx(&ctx, AES_key);
   uint8_t returnBuffer[16] = {0x12, 0x34, 0x56, 0x78, 0x9A, 0xBC, 0xDE, 0xF0, 0x12, 0x34, 0x56, 0x78, 0x9A, 0xBC, 0xDE, 0xF0};
   uint8_t transmissionBuffer[20] = {0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00};
   uint8_t updateBuffer[240];
@@ -386,14 +389,14 @@ int main(void)
       HAL_Delay(1000);
 
       returnPublicKey(returnBuffer, 16);
-      AES_ECB_encrypt(&ctx, returnBuffer);
+//      AES_ECB_encrypt(&ctx, returnBuffer);
       memcpy(transmissionBuffer, prepareTransmission(returnBuffer, 16), 20);
       HAL_UART_Transmit(&huart1, transmissionBuffer, 20, HAL_MAX_DELAY);
 
       HAL_Delay(1000);
 
       returnPrivateKey(returnBuffer, 16);
-      AES_ECB_encrypt(&ctx, returnBuffer);
+//      AES_ECB_encrypt(&ctx, returnBuffer);
       memcpy(transmissionBuffer, prepareTransmission(returnBuffer, 16), 20);
       HAL_UART_Transmit(&huart1, transmissionBuffer, 20, HAL_MAX_DELAY);
 
@@ -416,7 +419,7 @@ int main(void)
       uint32_t startTime = HAL_GetTick();
       for(uint8_t i = 0; i < 240; i+=16)
       {
-        AES_ECB_encrypt(&ctx, AES_transmission_array+i); 
+//        AES_ECB_encrypt(&ctx, AES_transmission_array+i);
       }
       uint32_t endTime = HAL_GetTick();
 

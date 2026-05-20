@@ -44,13 +44,13 @@ uint8_t replaceWithEncryptedData(uint8_t size, uint8_t startAddress)
   uint8_t rounds = size / BLOCKLEN; // Calculate the number of full rounds
   uint8_t remainingBytes = size % BLOCKLEN; // Calculate remaining bytes after full rounds
   //init the AES library
-  struct AES_ctx ctx;
-  AES_init_ctx(&ctx, AES_key);
+//  struct AES_ctx ctx;
+//  AES_init_ctx(&ctx, AES_key);
 
   for(int i = 0; i < rounds; i++)
   {
     readFromMemory(tempBuffer, BLOCKLEN, startAddress + (i * BLOCKLEN));
-    AES_ECB_encrypt(&ctx, tempBuffer);
+//    AES_ECB_encrypt(&ctx, tempBuffer);
     writeToMemory(tempBuffer, BLOCKLEN, startAddress + (i * BLOCKLEN));
   }
   return remainingBytes;
@@ -70,15 +70,15 @@ uint8_t * encryptDataWithPadding(uint8_t size, uint8_t * buffer)
   }
   
   //init the AES library
-  struct AES_ctx ctx;
-  AES_init_ctx(&ctx, AES_key);
+//  struct AES_ctx ctx;
+//  AES_init_ctx(&ctx, AES_key);
 
   static uint8_t returnBuffer[BLOCKLEN];
   memset(returnBuffer, 0x00, 16);
 
   memcpy(&returnBuffer[BLOCKLEN - size], buffer, size);
 
-  AES_ECB_encrypt(&ctx, returnBuffer);
+//  AES_ECB_encrypt(&ctx, returnBuffer);
   return returnBuffer;
 }
 

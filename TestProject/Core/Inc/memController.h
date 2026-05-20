@@ -3,7 +3,7 @@
 #include <string.h>
 #include <stddef.h>
 
-#include "aes.h"
+#include "wolfssl/wolfcrypt/aes.h"
 
 #define BLOCKLEN 16
 
