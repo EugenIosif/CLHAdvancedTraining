@@ -48,6 +48,7 @@ extern "C" {
 
 /* Exported macro ------------------------------------------------------------*/
 /* USER CODE BEGIN EM */
+#define HAVE_AES_ECB
 
 /* USER CODE END EM */
 
