@@ -1,0 +1,14 @@
+../Core/Src/rsa_implementation.c:21:6:u64_to_u8_array	40	static
+../Core/Src/rsa_implementation.c:30:10:u8_array_to_u64	48	static
+../Core/Src/rsa_implementation.c:41:6:returnPublicKey	16	static
+../Core/Src/rsa_implementation.c:55:6:returnPrivateKey	16	static
+../Core/Src/rsa_implementation.c:70:10:modular_mul	104	static
+../Core/Src/rsa_implementation.c:88:10:modular_pow	48	static
+../Core/Src/rsa_implementation.c:102:10:gcd	32	static
+../Core/Src/rsa_implementation.c:115:9:mod_inverse	88	static
+../Core/Src/rsa_implementation.c:139:6:is_prime	224	static
+../Core/Src/rsa_implementation.c:168:10:generate_prime	32	static
+../Core/Src/rsa_implementation.c:180:6:generate_and_check_rsa_keys	104	static
+../Core/Src/rsa_implementation.c:230:6:rsa_encrypt	64	static
+../Core/Src/rsa_implementation.c:244:6:rsa_decrypt	64	static
+../Core/Src/rsa_implementation.c:257:6:print_key_array	24	static

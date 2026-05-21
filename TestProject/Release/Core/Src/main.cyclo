@@ -1,0 +1,10 @@
+../Core/Src/main.c:319:6:update_did_entry	10
+../Core/Src/main.c:194:6:read_did_entry	8
+../Core/Src/main.c:165:19:ComputeSHA256FromMemory	3
+../Core/Src/main.c:218:6:executeDiffieHellman	7
+../Core/Src/main.c:365:6:computeFunctionSignature128B	4
+../Core/Src/main.c:507:6:SystemClock_Config	4
+../Core/Src/main.c:406:5:main	10
+../Core/Src/main.c:765:6:HAL_TIM_PeriodElapsedCallback	2
+../Core/Src/main.c:784:6:BSP_PB_Callback	2
+../Core/Src/main.c:796:6:Error_Handler	1

@@ -48,6 +48,7 @@ extern "C" {
 
 /* Exported macro ------------------------------------------------------------*/
 /* USER CODE BEGIN EM */
+#define HAVE_AES_ECB
 
 /* USER CODE END EM */
 
@@ -61,7 +62,7 @@ void Error_Handler(void);
 /* Private defines -----------------------------------------------------------*/
 
 /* USER CODE BEGIN Private defines */
-
+#define TRANSMISSION_BYTE_LEN 500
 /* USER CODE END Private defines */
 
 #ifdef __cplusplus

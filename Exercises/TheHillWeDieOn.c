@@ -230,13 +230,6 @@ void main(void)
     {
         printf("%02X ", transmissionBuffer[i]);
     }
-      flipBits(transmissionBuffer, sizeof(transmissionBuffer));
-    printf("\nTransmission buffer after flipping bits: ");
-    for(int i = 0; i < 10; ++i)
-    {
-        printf("%02X ", transmissionBuffer[i]);
-    }
-   
 
     
     // uint64_t randomValue = 0xDEADBEEFCAFEBABE;

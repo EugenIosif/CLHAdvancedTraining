@@ -21,14 +21,17 @@
 
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
+#include <wolfssl/wolfcrypt/settings.h>
+#include <wolfssl/wolfcrypt/aes.h>
+#include <wolfssl/wolfcrypt/test.h>
 #include <stdio.h>
 #include <stdint.h>
 #include <string.h>
 #include <stdbool.h>
-#include <stdlib.h>
-#include <string.h>
-
 #include <stm32u5xx_hal_def.h>
+#include "memController.h"
+#include "rsa_implementation.h"
+
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -38,14 +41,38 @@
 
 /* Private define ------------------------------------------------------------*/
 /* USER CODE BEGIN PD */
+#define STM32_CRYPTO
 
-#define MSGLEN 16
 
+#define REPLACEWITHENCRYPTEDDATA_FUNCLEN 240
+#define UART_DATA_LENGTH 9
+#define IDLE 0
+#define NEGOTIATING 1
+#define WAITINGFORSECRET 2
+#define RECEIVEENCRYPTEDMESSAGE 3
+#define CLOSED 4
+#define EXCHANGEINITIALIZATION 0x01
+#define SECRETTANSMISSION 0x02
+#define SECRETRECEIVED 0x03
+#define ENCRYPTEDMESSAGERECEPTION 0x04
 /* USER CODE END PD */
 
 /* Private macro -------------------------------------------------------------*/
 /* USER CODE BEGIN PM */
 
+typedef union uint32ToBytes
+{
+  /* data */
+  uint32_t value;
+  uint8_t bytes[4];
+}uint32ToBytes;
+
+typedef union uint64ToBytes
+{
+  /* data */
+  uint32_t value;
+  uint8_t bytes[8];
+}uint64ToBytes;
 
 
 /* USER CODE END PM */
@@ -56,11 +83,25 @@ COM_InitTypeDef BspCOMInit;
 __IO uint32_t BspButtonState = BUTTON_RELEASED;
 ADC_HandleTypeDef hadc1;
 
+CRC_HandleTypeDef hcrc;
+
 HASH_HandleTypeDef hhash;
+
+RNG_HandleTypeDef hrng;
 
 SPI_HandleTypeDef hspi1;
 
+UART_HandleTypeDef huart2;
+
 /* USER CODE BEGIN PV */
+uint8_t state = IDLE;
+char buffer[100] = {0};
+uint8_t DH_e = 2;
+uint64_t DH_n = 18446744073709551557ULL;
+uint64_t DH_myPrivateIntermediary = 987654321ULL;
+
+/* USER CODE BEGIN PV */
+UART_HandleTypeDef huart1;
 
 /* USER CODE END PV */
 
@@ -72,196 +113,223 @@ static void MX_ICACHE_Init(void);
 static void MX_HASH_Init(void);
 static void MX_SPI1_Init(void);
 static void MX_ADC1_Init(void);
+static void MX_USART2_UART_Init(void);
+static void MX_CRC_Init(void);
+static void MX_RNG_Init(void);
 /* USER CODE BEGIN PFP */
-typedef union {
-    uint64_t value;
-    uint8_t bytes[8];
-} ValueUnion;
 
-typedef enum OperationType {
-    AND,
-    OR,
-    NOT,
-    XOR
-}OperationType;
+static void MX_USART1_UART_Init(void);
+uint32_t computeHash (const uint8_t * bytes, size_t numberOfBytes);
+uint8_t * prepareTransmission(uint8_t * transmissionBuffer, uint8_t size);
+void simpleXORencrypt (uint8_t * bufferToEncrypt, uint8_t size);
+HAL_StatusTypeDef ComputeSHA256WithHAL(uint32_t startAddress, uint32_t length, uint8_t *outputHash);
+void bytes_to_hex_string(uint8_t * inbuff, uint8_t size, uint8_t * outbuff);
 
-typedef struct things
-{
-    uint8_t mask[8];
-    OperationType OP[8];
-    uint64_t value;
-    uint8_t signature;
-} things;
-
-uint8_t getMask(things * thing, uint8_t position);
-OperationType getOperation(things * thing, uint8_t position);
-uint64_t getValue(things * thing);
-uint8_t getSignature(things * thing);
-void setMask(things * thing, uint8_t position, uint8_t mask);
-void setOperation(things * thing, uint8_t position, OperationType OP);
-void setValue(things * thing, uint64_t value);
-void setSignature(things * thing, uint8_t signature);
-void computeValue(things * thing);
-uint8_t computeSignature (uint8_t * bytes);
-void prepareTransmission(things * thing, uint8_t * transmissionBuffer);
-
-uint8_t getMask(things * thing, uint8_t position)
-{
-    if(thing != NULL && position < 8)
-    {
-        return thing->mask[position];
-    }
-    return 0;
-}
-
-OperationType getOperation(things * thing, uint8_t position)
-{
-    if(thing != NULL && position < 8)
-    {
-        return thing->OP[position];
-    }
-    return 0;
-}
-
-uint64_t getValue(things * thing)
-{
-    if(thing != NULL)
-    {
-        return thing->value;
-    }
-    return 0;
-}
-
-uint8_t getSignature(things * thing)
-{
-    if(thing != NULL)
-    {
-        return thing->signature;
-    }
-    return 0;
-}
-
-void setMask(things * thing, uint8_t position, uint8_t mask)
-{
-    if(thing != NULL && position < 8)
-    {
-        thing->mask[position] = mask;
-    }
-}
-
-void setOperation(things * thing, uint8_t position, OperationType OP)
-{
-    if(thing != NULL && position < 8)
-    {
-        if(OP > 3)
-        {
-            printf("Invalid operation type");
-            return;
-        }
-        thing->OP[position] = OP;
-    }
-}
-
-void setValue(things * thing, uint64_t value)
-{
-    if(thing != NULL)
-    {
-        thing->value = value;
-    }
-}
-
-void setSignature(things * thing, uint8_t signature)
-{
-    if(thing != NULL)
-    {
-        thing->signature = signature;
-    }
-}
-
-void computeValue(things * thing)
-{
-    uint64_t result = 0;
-    for (int i = 0; i<8 ; ++i)
-    {
-        uint64_t byte = (getValue(thing) >> (i * 8)) & 0xFF;
-        uint8_t mask = getMask (thing, i);
-        OperationType op = getOperation(thing, i);
-        uint64_t computed;
-        switch (op )
-        {
-            case AND: computed = byte & mask; break;
-            case OR: computed = byte | mask; break;
-            case NOT: computed = ~byte; break;
-            case XOR: computed = byte ^ mask; break;
-        }
-        uint64_t tempmask = 0xFFULL << (i * 8);
-        result &= ~tempmask;
-        result |= (computed & 0xFFULL) << (i * 8);
-    }
-        setValue(thing, result);
-}
-
-uint64_t testFunction(uint64_t * input, uint8_t newValue, uint8_t position)
-{
-    uint64_t result = *input;
-    // printf("Original value: 0x%llX\n\r", result);
-    uint64_t tempmask = (0xFFULL << (position * 8));
-    // printf("temp mask: 0x%llX\n\r", tempmask);
-    result &= ~tempmask;
-    // printf("Result after masking: 0x%llX\n\r", result);
-
-    result |= (newValue & 0xFFULL) << (position * 8);
-    // printf("Result after setting new value: 0x%llX\n\r", result);
-    return result;
-}
-
-uint8_t computeSignature (uint8_t * bytes)
-{
-    if(bytes != NULL)
-    {
-        uint8_t result = 0;
-        for(int i = 0; i < 8; ++i)
-        {
-            // result ^= *(bytes + i); //Equivalent
-
-            result ^= bytes[i]; //Equivalent
-
-            // result ^= *bytes; //Equivalent
-            // bytes++;
-        }
-        return result;
-    }
-}
-
-void flipBits(uint8_t *data, size_t len)
-{
-    if(data!= NULL && len > 0)
-    {
-        for (size_t i = 0; i < len; i++)
-        {
-            data[i] ^= 0xFF; // Flip all bits in the byte
-        }
-    }
-}
-
-void prepareTransmission(things * thing, uint8_t * transmissionBuffer)
-{
-    if(thing != NULL)
-    {
-        computeValue(thing);
-        ValueUnion valueUnion;
-        valueUnion.value = getValue(thing);
-        setSignature(thing, computeSignature(valueUnion.bytes));
-
-        memcpy(transmissionBuffer, &thing->signature, sizeof(thing->signature));
-        memcpy(transmissionBuffer + sizeof(thing->signature), &thing->value, sizeof(thing->value));
-        memset(transmissionBuffer + sizeof(thing->value) + sizeof(thing->signature), '\0', 1);
-    }
-}
 /* USER CODE END PFP */
 
 /* Private user code ---------------------------------------------------------*/
 /* USER CODE BEGIN 0 */
+
+
+/**
+  * @brief USART1 Initialization Function
+  * @param None
+  * @retval None
+  */
+static void MX_USART1_UART_Init(void)
+{
+
+  /* USER CODE BEGIN USART1_Init 0 */
+
+  /* USER CODE END USART1_Init 0 */
+
+  /* USER CODE BEGIN USART1_Init 1 */
+
+  /* USER CODE END USART1_Init 1 */
+  huart1.Instance = USART1;
+  huart1.Init.BaudRate = 115200;
+  huart1.Init.WordLength = UART_WORDLENGTH_8B;
+  huart1.Init.StopBits = UART_STOPBITS_1;
+  huart1.Init.Parity = UART_PARITY_NONE;
+  huart1.Init.Mode = UART_MODE_TX_RX;
+  huart1.Init.HwFlowCtl = UART_HWCONTROL_NONE;
+  huart1.Init.OverSampling = UART_OVERSAMPLING_16;
+  huart1.Init.OneBitSampling = UART_ONE_BIT_SAMPLE_DISABLE;
+  huart1.Init.ClockPrescaler = UART_PRESCALER_DIV1;
+  huart1.AdvancedInit.AdvFeatureInit = UART_ADVFEATURE_NO_INIT;
+  if (HAL_UART_Init(&huart1) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  if (HAL_UARTEx_SetTxFifoThreshold(&huart1, UART_TXFIFO_THRESHOLD_1_8) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  if (HAL_UARTEx_SetRxFifoThreshold(&huart1, UART_RXFIFO_THRESHOLD_1_8) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  if (HAL_UARTEx_DisableFifoMode(&huart1) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  /* USER CODE BEGIN USART1_Init 2 */
+
+  /* USER CODE END USART1_Init 2 */
+
+}
+
+void bytes_to_hex_string(uint8_t * inbuff, uint8_t size, uint8_t * outbuff)
+{
+    for (uint8_t i = 0; i < size; i++)
+    {
+        sprintf((char*)&outbuff[i * 2], "%02x", inbuff[i]);
+    }
+}
+
+HAL_StatusTypeDef ComputeSHA256WithHAL(uint32_t startAddress, uint32_t length, uint8_t *outputHash)
+{
+    HAL_StatusTypeDef status;
+    memset(outputHash, 0x00, 32);
+
+    status = HAL_HASHEx_SHA256_Start(&hhash, (uint8_t*)startAddress, length, outputHash, HAL_MAX_DELAY);
+    return status;
+}
+
+void encryptU32WithRSA(uint32_t * inputValue, uint64_t * outputValue)
+{
+	if(inputValue != NULL && outputValue != NULL)
+	{
+		uint32ToBytes inputTempValue;
+		uint64ToBytes outputTempValue[8];
+		//8 entries in the array
+		for(uint8_t i = 0; i < 8; i++)
+		{
+		  //used for byte access of the input
+		  inputTempValue.value = inputValue[i];
+		  uint8_t dummyArray[8] = {0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00};
+		  memcpy(dummyArray+4, inputTempValue.bytes, 4);
+      KEY_GENERATION;
+		  RSA_ENCRYPTION_IF(dummyArray, outputTempValue[i].bytes);
+		}
+	}
+}
+
+uint8_t * prepareTransmission(uint8_t * inputBuffer, uint8_t size)
+{
+  static uint8_t buffer[TRANSMISSION_BYTE_LEN];
+  //reset the previous content of buffer
+  memset(buffer, 0x00, sizeof(buffer));
+  if(inputBuffer != NULL && size > 0)
+  {
+    if(size == 16)
+    {
+      //we are here because we are trying to transmit a key to the other side. 
+      //Hence the 16 bytes -> only the 4 byte hash needed.
+      uint32ToBytes tempValue;
+      tempValue.value = 0;
+      tempValue.value = computeHash(inputBuffer, size);
+      memcpy(&buffer[0], tempValue.bytes, 4);
+      memcpy(&buffer[4], inputBuffer, size);
+    }
+    else
+    {
+      //we are here because we are trying to transmit The contents of a function to the other side.
+      //SHA256 is used for this
+      uint8_t ouputHash[32];
+      memset(ouputHash, 0x00, 32);
+      ComputeSHA256WithHAL((uint32_t)replaceWithEncryptedData, 208, ouputHash);
+
+      memcpy(&buffer[0], ouputHash, 32);
+      memcpy(&buffer[32], inputBuffer, size);
+    }
+  }
+  return buffer;
+}
+
+uint32_t computeHash(const uint8_t *bytes, size_t numberOfBytes) {
+    uint32_t hash = 0x811c9dc5;
+    for(size_t i = 0; i < numberOfBytes; i++) {
+        hash ^= bytes[i];
+        hash *= 0x01000193;
+    }
+    return hash;
+}
+
+void executeDiffieHellman(void)
+{
+    uint8_t uart_data_tx[UART_DATA_LENGTH] = {0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00};
+    uint8_t uart_data_rx[UART_DATA_LENGTH] = {0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00};
+
+    while(1)
+    {
+        if(state == IDLE)
+        {
+            uart_data_tx[0] = EXCHANGEINITIALIZATION; //signal the start of the exchange
+            HAL_UART_Transmit(&huart1, (uint8_t*)uart_data_tx, UART_DATA_LENGTH, HAL_MAX_DELAY);
+            BspButtonState = BUTTON_RELEASED;
+            state = WAITINGFORSECRET;
+        }
+        else if(state == WAITINGFORSECRET)
+        {
+            HAL_UART_Receive(&huart1, (uint8_t*)uart_data_rx, UART_DATA_LENGTH, HAL_MAX_DELAY);
+            if(uart_data_rx[0] == SECRETRECEIVED)
+            {
+                uint8_t privIntermediaryArr[8] = {0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00};
+                uint8_t nArr[8] = {0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00};
+
+                u64_to_u8_array(DH_n, nArr);
+                u64_to_u8_array(DH_myPrivateIntermediary, privIntermediaryArr);
+                uint8_t shared_key_arr[8] = {0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00};
+                
+                COMPUTE_DH_KEY(&uart_data_rx[1], shared_key_arr, privIntermediaryArr, nArr);
+                uint8_t keyBuffer[16];
+                memset(keyBuffer, 0x00, 16);
+                for(uint8_t i = 0; i < 16; i+=2)
+                {
+                    keyBuffer[i] = shared_key_arr[i];
+                    keyBuffer[i+1] = shared_key_arr[7-i];
+                }
+                // WRITE_AES_KEY(keyBuffer);
+                state = NEGOTIATING;
+            }
+        }
+        else if(state == NEGOTIATING)
+        {
+            //Transition logic for NEGOCIATING
+            // uint32_t dh_value = simple_rsa_encrypt(e, mypublickey, n);
+            uint8_t temporaryU64[8] = {0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00};
+            uint8_t eArr[8] = {0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00};
+            uint8_t nArr[8] = {0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00};
+            uint8_t privIntArr[8] = {0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00};            
+
+            u64_to_u8_array(DH_e, eArr);
+            u64_to_u8_array(DH_n, nArr);
+            u64_to_u8_array(DH_myPrivateIntermediary, privIntArr);
+            COMPUTE_DH_KEY(eArr, temporaryU64, privIntArr, nArr);
+            
+            uart_data_tx[0] = SECRETTANSMISSION;
+            memcpy(uart_data_tx+1, temporaryU64, 8);
+            // uint64_t dh_value = u8_array_to_u64(temporaryU64);
+
+            // u64_to_u8_array(dh_value, uart_data_tx+1);
+            HAL_UART_Transmit(&huart1, (uint8_t*)uart_data_tx, UART_DATA_LENGTH, HAL_MAX_DELAY);
+
+            state = CLOSED;
+        }
+        
+        else if(state == CLOSED)
+        {
+            state = IDLE;
+            break;
+        }  
+        else
+        {
+            state = IDLE;
+            break;
+        }
+    }
+}
 
 /* USER CODE END 0 */
 
@@ -301,7 +369,11 @@ int main(void)
   MX_HASH_Init();
   MX_SPI1_Init();
   MX_ADC1_Init();
+  MX_USART2_UART_Init();
+  MX_CRC_Init();
+  MX_RNG_Init();
   /* USER CODE BEGIN 2 */
+  MX_USART1_UART_Init();
 
   /* USER CODE END 2 */
 
@@ -326,34 +398,17 @@ int main(void)
 
   /* USER CODE BEGIN BSP */
 
-      things arrayOfThings[5]= {{     {35, 132, 108, 174, 144, 241, 187, 235},
-                                      {2, 1, 2, 2, 1, 1, 1, 3},
-                                      41,
-                                      0
-                                  }};
-
-      uint8_t transmissionBuffer[10];
-
-      prepareTransmission(&arrayOfThings[0], &transmissionBuffer[0]);
-      printf("Transmission buffer for the first entry: ");
-
-      for(int i = 0; i < 10; ++i)
-      {
-          printf("%02X ", transmissionBuffer[i]);
-      }
-        flipBits(transmissionBuffer, sizeof(transmissionBuffer));
-      printf("\nTransmission buffer after flipping bits: ");
-      for(int i = 0; i < 10; ++i)
-      {
-          printf("%02X ", transmissionBuffer[i]);
-      }
   /* -- Sample board code to send message over COM1 port ---- */
 
-  printf("Welcome to STM32 world !\n\r\r");
+  printf("\n\rWelcome to STM32 world !\n\r");
 
-  // char buffer[100] = {0};
-  // sprintf(buffer, "Welcome to STM32 world !\n\r\r");
-  // HAL_UART_Transmit(&huart1, (uint8_t*)buffer, 24, HAL_MAX_DELAY);
+  uint8_t returnBuffer[16] = {0x12, 0x34, 0x56, 0x78, 0x9A, 0xBC, 0xDE, 0xF0, 0x12, 0x34, 0x56, 0x78, 0x9A, 0xBC, 0xDE, 0xF0};
+  uint8_t transmissionBuffer[20] = {0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00};
+  uint8_t updateBuffer[240];
+  memset (updateBuffer, 0x00, 240);
+  KEY_GENERATION;
+
+  // Aes
 
   /* -- Sample board code to switch on leds ---- */
   BSP_LED_On(LED_GREEN);
@@ -364,8 +419,6 @@ int main(void)
 
   /* Infinite loop */
   /* USER CODE BEGIN WHILE */
-
-
 
   while (1)
   {
@@ -379,12 +432,86 @@ int main(void)
       BSP_LED_Toggle(LED_BLUE);
       BSP_LED_Toggle(LED_RED);
 
-    printf("yo");
+      // executeDiffieHellman();
+
+      // HAL_Delay(1000);
+
+      uint8_t dummyData[16] = {0x00, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08, 0x09, 0x0A, 0x0B, 0x0C, 0x0D, 0x0E, 0x0F};
+
+
+      // returnPublicKey(returnBuffer, 16);
+      // HAL_UART_Transmit(&huart1, dummyData, 16, HAL_MAX_DELAY);
+      // HAL_Delay(100);
+      // Aes aes;
+      // wc_AesInit(&aes, NULL, INVALID_DEVID);
+      // wc_AesSetKey(&aes, AES_key, 32, NULL, AES_ENCRYPTION);
+      
+      wc_AesEcbEncrypt(&aes, returnBuffer, dummyData, WC_AES_BLOCK_SIZE);
+
+      // wc_AesEcbEncrypt(&aes, ciphertext, plaintext, plaintext_len);
+      // memcpy(transmissionBuffer, prepareTransmission(returnBuffer, 16), 20);
+      // HAL_UART_Transmit(&huart1, transmissionBuffer, 20, HAL_MAX_DELAY);
+      HAL_UART_Transmit(&huart1, returnBuffer, 16, HAL_MAX_DELAY);
+      wc_AesFree(&aes);
+
+      // HAL_Delay(1000);
+
+      // returnPrivateKey(returnBuffer, 16);
+      // wc_AesEcbEncrypt((Aes*)AES_key, returnBuffer, returnBuffer, WC_AES_BLOCK_SIZE);
+      // memcpy(transmissionBuffer, prepareTransmission(returnBuffer, 16), 20);
+      // HAL_UART_Transmit(&huart1, transmissionBuffer, 20, HAL_MAX_DELAY);
+
+      // HAL_Delay(1000);
+
+      // memcpy(updateBuffer, prepareTransmission((uint8_t *)replaceWithEncryptedData, 208), 240);
+	    // for(uint8_t i = 0; i < 32; i+=8)
+      // {
+      //     uint8_t tempArray[8] = {0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00};
+      //     SIGN_CHUNK(updateBuffer+i, tempArray);
+      //     memcpy(updateBuffer+i, tempArray, 8);
+      // }
+      // HAL_UART_Transmit(&huart1, updateBuffer, 240, HAL_MAX_DELAY);
+
+      // HAL_Delay(1000);
+      
+      // //AES encryption
+      // uint8_t AES_transmission_array[240] = {0x00};
+      // memcpy(AES_transmission_array, updateBuffer, 240);
+      // uint32_t startTime = HAL_GetTick();
+      // for(uint8_t i = 0; i < 240; i+=16)
+      // {
+      // wc_AesEcbEncrypt((Aes*)AES_key, AES_transmission_array + i, AES_transmission_array + i, WC_AES_BLOCK_SIZE);
+      // }
+      // uint32_t endTime = HAL_GetTick();
+
+      // HAL_UART_Transmit(&huart1, AES_transmission_array, 240, HAL_MAX_DELAY);
+
+      // HAL_Delay(1000);
+
+      // uint32_t elapsedTime = endTime - startTime;
+
+      // HAL_UART_Transmit(&huart1, (uint8_t *)&elapsedTime, 4, HAL_MAX_DELAY);
+      // HAL_Delay(1000);
+
+      //RSA encryption
+//      uint8_t RSA_transmission_array[240] = {0x00};
+//      memcpy(RSA_transmission_array, updateBuffer, 240);
+//      startTime = HAL_GetTick();
+//      for(uint8_t i = 0; i < 240; i+=8)
+//      {
+//          RSA_ENCRYPTION_IF(RSA_transmission_array + i, RSA_transmission_array + i);
+//      }
+//      endTime = HAL_GetTick();
+//
+//      HAL_UART_Transmit(&huart1, RSA_transmission_array, 240, HAL_MAX_DELAY);
+//      HAL_Delay(1000);
+
+      // elapsedTime = endTime - startTime;
+      // HAL_UART_Transmit(&huart1, (uint8_t *)&elapsedTime, 4, HAL_MAX_DELAY);
+      // HAL_Delay(1000);
+
 	    /* ..... Perform your action ..... */
     }
-
-
-
     /* USER CODE END WHILE */
 
     /* USER CODE BEGIN 3 */
@@ -403,15 +530,17 @@ void SystemClock_Config(void)
 
   /** Configure the main internal regulator output voltage
   */
-  if (HAL_PWREx_ControlVoltageScaling(PWR_REGULATOR_VOLTAGE_SCALE4) != HAL_OK)
+  if (HAL_PWREx_ControlVoltageScaling(PWR_REGULATOR_VOLTAGE_SCALE3) != HAL_OK)
   {
     Error_Handler();
   }
 
   /** Initializes the CPU, AHB and APB buses clocks
   */
-  RCC_OscInitStruct.OscillatorType = RCC_OSCILLATORTYPE_HSI|RCC_OSCILLATORTYPE_MSI;
+  RCC_OscInitStruct.OscillatorType = RCC_OSCILLATORTYPE_HSI48|RCC_OSCILLATORTYPE_HSI
+                              |RCC_OSCILLATORTYPE_MSI;
   RCC_OscInitStruct.HSIState = RCC_HSI_ON;
+  RCC_OscInitStruct.HSI48State = RCC_HSI48_ON;
   RCC_OscInitStruct.HSICalibrationValue = RCC_HSICALIBRATION_DEFAULT;
   RCC_OscInitStruct.MSIState = RCC_MSI_ON;
   RCC_OscInitStruct.MSICalibrationValue = RCC_MSICALIBRATION_DEFAULT;
@@ -507,6 +636,37 @@ static void MX_ADC1_Init(void)
 }
 
 /**
+  * @brief CRC Initialization Function
+  * @param None
+  * @retval None
+  */
+static void MX_CRC_Init(void)
+{
+
+  /* USER CODE BEGIN CRC_Init 0 */
+
+  /* USER CODE END CRC_Init 0 */
+
+  /* USER CODE BEGIN CRC_Init 1 */
+
+  /* USER CODE END CRC_Init 1 */
+  hcrc.Instance = CRC;
+  hcrc.Init.DefaultPolynomialUse = DEFAULT_POLYNOMIAL_ENABLE;
+  hcrc.Init.DefaultInitValueUse = DEFAULT_INIT_VALUE_ENABLE;
+  hcrc.Init.InputDataInversionMode = CRC_INPUTDATA_INVERSION_NONE;
+  hcrc.Init.OutputDataInversionMode = CRC_OUTPUTDATA_INVERSION_DISABLE;
+  hcrc.InputDataFormat = CRC_INPUTDATA_FORMAT_BYTES;
+  if (HAL_CRC_Init(&hcrc) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  /* USER CODE BEGIN CRC_Init 2 */
+
+  /* USER CODE END CRC_Init 2 */
+
+}
+
+/**
   * @brief HASH Initialization Function
   * @param None
   * @retval None
@@ -565,6 +725,33 @@ static void MX_ICACHE_Init(void)
 }
 
 /**
+  * @brief RNG Initialization Function
+  * @param None
+  * @retval None
+  */
+static void MX_RNG_Init(void)
+{
+
+  /* USER CODE BEGIN RNG_Init 0 */
+
+  /* USER CODE END RNG_Init 0 */
+
+  /* USER CODE BEGIN RNG_Init 1 */
+
+  /* USER CODE END RNG_Init 1 */
+  hrng.Instance = RNG;
+  hrng.Init.ClockErrorDetection = RNG_CED_ENABLE;
+  if (HAL_RNG_Init(&hrng) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  /* USER CODE BEGIN RNG_Init 2 */
+
+  /* USER CODE END RNG_Init 2 */
+
+}
+
+/**
   * @brief SPI1 Initialization Function
   * @param None
   * @retval None
@@ -618,6 +805,54 @@ static void MX_SPI1_Init(void)
   /* USER CODE BEGIN SPI1_Init 2 */
 
   /* USER CODE END SPI1_Init 2 */
+
+}
+
+/**
+  * @brief USART2 Initialization Function
+  * @param None
+  * @retval None
+  */
+static void MX_USART2_UART_Init(void)
+{
+
+  /* USER CODE BEGIN USART2_Init 0 */
+//
+  /* USER CODE END USART2_Init 0 */
+
+  /* USER CODE BEGIN USART2_Init 1 */
+//
+  /* USER CODE END USART2_Init 1 */
+  huart2.Instance = USART2;
+  huart2.Init.BaudRate = 115200;
+  huart2.Init.WordLength = UART_WORDLENGTH_8B;
+  huart2.Init.StopBits = UART_STOPBITS_1;
+  huart2.Init.Parity = UART_PARITY_NONE;
+  huart2.Init.Mode = UART_MODE_TX_RX;
+  huart2.Init.HwFlowCtl = UART_HWCONTROL_NONE;
+  huart2.Init.OverSampling = UART_OVERSAMPLING_16;
+  huart2.Init.OneBitSampling = UART_ONE_BIT_SAMPLE_DISABLE;
+  huart2.Init.ClockPrescaler = UART_PRESCALER_DIV1;
+  huart2.AdvancedInit.AdvFeatureInit = UART_ADVFEATURE_NO_INIT;
+  if (HAL_UART_Init(&huart2) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  if (HAL_UARTEx_SetTxFifoThreshold(&huart2, UART_TXFIFO_THRESHOLD_1_8) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  if (HAL_UARTEx_SetRxFifoThreshold(&huart2, UART_RXFIFO_THRESHOLD_1_8) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  if (HAL_UARTEx_DisableFifoMode(&huart2) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  /* USER CODE BEGIN USART2_Init 2 */
+//
+  /* USER CODE END USART2_Init 2 */
 
 }
 
@@ -707,7 +942,7 @@ void assert_failed(uint8_t *file, uint32_t line)
 {
   /* USER CODE BEGIN 6 */
   /* User can add his own implementation to report the file name and line number,
-     ex: printf("Wrong parameters value: file %s on line %d\r\n\r", file, line) */
+     ex: printf("Wrong parameters value: file %s on line %d\r\n", file, line) */
   /* USER CODE END 6 */
 }
 #endif /* USE_FULL_ASSERT */
