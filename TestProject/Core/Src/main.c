@@ -23,7 +23,6 @@
 /* USER CODE BEGIN Includes */
 #include <wolfssl/wolfcrypt/settings.h>
 #include <wolfssl/wolfcrypt/aes.h>
-#include <wolfssl/wolfcrypt/test.h>
 #include <stdio.h>
 #include <stdint.h>
 #include <string.h>
@@ -41,8 +40,8 @@
 
 /* Private define ------------------------------------------------------------*/
 /* USER CODE BEGIN PD */
-#define STM32_CRYPTO
-
+#define WOLFSSL_AES_DIRECT
+#define HAVE_AES_ECB
 
 #define REPLACEWITHENCRYPTEDDATA_FUNCLEN 240
 #define UART_DATA_LENGTH 9
@@ -442,9 +441,9 @@ int main(void)
       // returnPublicKey(returnBuffer, 16);
       // HAL_UART_Transmit(&huart1, dummyData, 16, HAL_MAX_DELAY);
       // HAL_Delay(100);
-      // Aes aes;
-      // wc_AesInit(&aes, NULL, INVALID_DEVID);
-      // wc_AesSetKey(&aes, AES_key, 32, NULL, AES_ENCRYPTION);
+      Aes aes;
+      wc_AesInit(&aes, NULL, INVALID_DEVID);
+      wc_AesSetKey(&aes, AES_key, 16, NULL, AES_ENCRYPTION);
       
       wc_AesEcbEncrypt(&aes, returnBuffer, dummyData, WC_AES_BLOCK_SIZE);
 

@@ -121,7 +121,6 @@ def getPublicKey():
             # if computed_hash == int.from_bytes(received_hash, 'little'):
                 #if the hashes match, do the rest
             # print("\nKey HASH matches! Here is the payload bytes:") 
-            print("Received Data (hex):", ciphertext.hex())
             cipher = Cipher(algorithms.AES(KEY), modes.ECB(), backend=default_backend())
             decryptor = cipher.decryptor()
             try:
