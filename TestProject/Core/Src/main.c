@@ -40,9 +40,6 @@
 
 /* Private define ------------------------------------------------------------*/
 /* USER CODE BEGIN PD */
-#define WOLFSSL_AES_DIRECT
-#define HAVE_AES_ECB
-
 #define REPLACEWITHENCRYPTEDDATA_FUNCLEN 240
 #define UART_DATA_LENGTH 9
 #define IDLE 0
@@ -139,7 +136,7 @@ static void MX_USART1_UART_Init(void);
 uint32_t computeHash (const uint8_t * bytes, size_t numberOfBytes);
 uint8_t * prepareTransmission(uint8_t * transmissionBuffer, uint8_t size);
 void simpleXORencrypt (uint8_t * bufferToEncrypt, uint8_t size);
-HAL_StatusTypeDef ComputeSHA256WithHAL(uint32_t startAddress, uint32_t length, uint8_t *outputHash);
+HAL_StatusTypeDef ComputeSHA256WithHAL(uint8_t * startAddress, uint32_t length, uint8_t *outputHash);
 void bytes_to_hex_string(uint8_t * inbuff, uint8_t size, uint8_t * outbuff);
 
 /* USER CODE END PFP */
@@ -204,12 +201,12 @@ void bytes_to_hex_string(uint8_t * inbuff, uint8_t size, uint8_t * outbuff)
     }
 }
 
-HAL_StatusTypeDef ComputeSHA256WithHAL(uint32_t startAddress, uint32_t length, uint8_t *outputHash)
+HAL_StatusTypeDef ComputeSHA256WithHAL(uint8_t * startAddress, uint32_t length, uint8_t *outputHash)
 {
     HAL_StatusTypeDef status;
     memset(outputHash, 0x00, 32);
 
-    status = HAL_HASHEx_SHA256_Start(&hhash, (uint8_t*)startAddress, length, outputHash, HAL_MAX_DELAY);
+    status = HAL_HASHEx_SHA256_Start(&hhash, startAddress, length, outputHash, HAL_MAX_DELAY);
     return status;
 }
 
@@ -255,7 +252,7 @@ uint8_t * prepareTransmission(uint8_t * inputBuffer, uint8_t size)
       //SHA256 is used for this
       uint8_t ouputHash[32];
       memset(ouputHash, 0x00, 32);
-      ComputeSHA256WithHAL((uint32_t)inputBuffer, size, ouputHash);
+      ComputeSHA256WithHAL(inputBuffer, size, ouputHash);
 
       memcpy(&buffer[0], ouputHash, 32);
       memcpy(&buffer[32], inputBuffer, size);
@@ -449,11 +446,9 @@ int main(void)
       BSP_LED_Toggle(LED_RED);
 
       executeDiffieHellman();
-
       HAL_Delay(100);
 
-      returnPublicKey(returnBuffer, 16);
-      
+      returnPublicKey(returnBuffer, 16);      
       wc_AesEcbEncrypt(&aes, returnBuffer, returnBuffer, WC_AES_BLOCK_SIZE);
       memcpy(transmissionBuffer, prepareTransmission(returnBuffer, 16), 20);
       HAL_UART_Transmit(&huart1, transmissionBuffer, 20, HAL_MAX_DELAY);
@@ -470,59 +465,41 @@ int main(void)
       memcpy(updateBuffer, prepareTransmission((uint8_t *)dummyFunctionDataArray, 208), 240);
 	    for(uint8_t i = 0; i < 32; i+=8)
       {
-          // uint8_t tempArray[8] = {0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00};
           SIGN_CHUNK(updateBuffer+i, updateBuffer+i);
-          // memcpy(updateBuffer+i, tempArray, 8);
       }
       HAL_UART_Transmit(&huart1, updateBuffer, 240, HAL_MAX_DELAY);
 
       HAL_Delay(1000);
       
-      // //AES encryption
-      // uint8_t AES_transmission_array[240] = {0x00};
-      // memcpy(AES_transmission_array, updateBuffer, 240);
-      // // uint32_t startTime = HAL_GetTick();
-      // for(uint8_t i = 0; i < 240; i+=16)
-      // {
-      //   wc_AesEcbEncrypt(&aes, AES_transmission_array + i, AES_transmission_array + i, WC_AES_BLOCK_SIZE);
-      // }
-      // // uint32_t endTime = HAL_GetTick();
+      //AES encryption
+      uint8_t AES_transmission_array[240] = {0x00};
+      memcpy(AES_transmission_array, updateBuffer, 240);
+      for(uint8_t i = 0; i < 240; i+=16)
+      {
+        wc_AesEcbEncrypt(&aes, AES_transmission_array + i, AES_transmission_array + i, WC_AES_BLOCK_SIZE);
+      }
 
-      // HAL_UART_Transmit(&huart1, AES_transmission_array, 240, HAL_MAX_DELAY);
+      HAL_UART_Transmit(&huart1, AES_transmission_array, 240, HAL_MAX_DELAY);
 
-      // HAL_Delay(1000);
-
-      // uint32_t elapsedTime = endTime - startTime;
-
-      // HAL_UART_Transmit(&huart1, (uint8_t *)&elapsedTime, 4, HAL_MAX_DELAY);
-      // HAL_Delay(1000);
-
+      HAL_Delay(1000);
       //RSA encryption
-//      uint8_t RSA_transmission_array[240] = {0x00};
-//      memcpy(RSA_transmission_array, updateBuffer, 240);
-//      startTime = HAL_GetTick();
-//      for(uint8_t i = 0; i < 240; i+=8)
-//      {
-//          RSA_ENCRYPTION_IF(RSA_transmission_array + i, RSA_transmission_array + i);
-//      }
-//      endTime = HAL_GetTick();
-//
-//      HAL_UART_Transmit(&huart1, RSA_transmission_array, 240, HAL_MAX_DELAY);
-//      HAL_Delay(1000);
+     uint8_t RSA_transmission_array[240] = {0x00};
+     memcpy(RSA_transmission_array, updateBuffer, 240);
+     for(uint8_t i = 0; i < 240; i+=8)
+     {
+         RSA_ENCRYPTION_IF(RSA_transmission_array + i, RSA_transmission_array + i);
+     }
 
-      // elapsedTime = endTime - startTime;
-      // HAL_UART_Transmit(&huart1, (uint8_t *)&elapsedTime, 4, HAL_MAX_DELAY);
-      // HAL_Delay(1000);
-
-      
-	    /* ..... Perform your action ..... */
+     HAL_UART_Transmit(&huart1, RSA_transmission_array, 240, HAL_MAX_DELAY);
+     HAL_Delay(1000);
+      /* ..... Perform your action ..... */
     }
     /* USER CODE END WHILE */
-    
+
     /* USER CODE BEGIN 3 */
   }
     wc_AesFree(&aes);
-    /* USER CODE END 3 */
+  /* USER CODE END 3 */
 }
 
 /**
@@ -687,7 +664,7 @@ static void MX_HASH_Init(void)
   /* USER CODE BEGIN HASH_Init 1 */
 
   /* USER CODE END HASH_Init 1 */
-  hhash.Init.DataType = HASH_DATATYPE_32B;
+  hhash.Init.DataType = HASH_DATATYPE_8B;
   if (HAL_HASH_Init(&hhash) != HAL_OK)
   {
     Error_Handler();
@@ -869,6 +846,7 @@ static void MX_USART2_UART_Init(void)
   */
 static void MX_GPIO_Init(void)
 {
+  GPIO_InitTypeDef GPIO_InitStruct = {0};
   /* USER CODE BEGIN MX_GPIO_Init_1 */
 
   /* USER CODE END MX_GPIO_Init_1 */
@@ -877,6 +855,14 @@ static void MX_GPIO_Init(void)
   __HAL_RCC_GPIOC_CLK_ENABLE();
   __HAL_RCC_GPIOA_CLK_ENABLE();
   __HAL_RCC_GPIOB_CLK_ENABLE();
+
+  /*Configure GPIO pins : PA9 PA10 */
+  GPIO_InitStruct.Pin = GPIO_PIN_9|GPIO_PIN_10;
+  GPIO_InitStruct.Mode = GPIO_MODE_AF_PP;
+  GPIO_InitStruct.Pull = GPIO_NOPULL;
+  GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
+  GPIO_InitStruct.Alternate = GPIO_AF7_USART1;
+  HAL_GPIO_Init(GPIOA, &GPIO_InitStruct);
 
   /* USER CODE BEGIN MX_GPIO_Init_2 */
 

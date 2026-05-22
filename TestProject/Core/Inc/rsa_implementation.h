@@ -1,16 +1,14 @@
 #ifndef RSA_IMPLEMENTATION_H
 #define RSA_IMPLEMENTATION_H
 
-#include "wolfssl/wolfcrypt/aes.h"
-
 extern uint8_t RSA_n[8];
 extern uint8_t RSA_e[8];
 extern uint8_t RSA_d[8];
 
 #define RSA_ENCRYPTION_IF(a, b) rsa_encrypt(a, b, RSA_e, RSA_n)
 #define RSA_DECRYPTION_IF(a, b) rsa_decrypt(a, b, RSA_d, RSA_n)
-#define SIGN_CHUNK(a, b)        rsa_decrypt(a, b, RSA_d, RSA_n)
-#define KEY_GENERATION generate_and_check_rsa_keys(&RSA_n[0], &RSA_e[0], &RSA_d[0])
+#define SIGN_CHUNK(a, b)        rsa_encrypt(a, b, RSA_d, RSA_n)
+#define KEY_GENERATION          generate_and_check_rsa_keys(&RSA_n[0], &RSA_e[0], &RSA_d[0])
 
 #define COMPUTE_DH_KEY rsa_encrypt
 

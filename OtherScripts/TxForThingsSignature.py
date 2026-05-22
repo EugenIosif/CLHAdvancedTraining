@@ -55,7 +55,6 @@ def executeDiffieHellman():
                     state = "NEGOTIATING"
                 else:
                     state = "CLOSED"
-            time.sleep(0.05)
         
         elif state == "NEGOTIATING":
             if last_printed_state != state:
@@ -98,7 +97,6 @@ def executeDiffieHellman():
                         key_list.append(ss_bytes[i])      # MSB, MSB-1...
                         key_list.append(ss_bytes[7 - i])  # LSB, LSB+1...
                     # KEY = bytes(key_list)
-                time.sleep(0.05)
                 state = "CLOSED"
         elif state == "CLOSED":
             if last_printed_state != state:
@@ -177,13 +175,12 @@ def getPrivateKey():
                 print("\nKey HASH does not match")
                 print("the received hash: ", received_hash.hex())
                 print("the computed hash: ", computed_hash.to_bytes(4, 'little').hex())
-            time.sleep(0.05)
             return
 
 def getFunctionPayload():
     while True:
         if(ser.in_waiting > 0):
-            time.sleep(0.2)
+            time.sleep(0.1)
             bs = ser.read(ser.in_waiting)
             print("\nPayload data received:", bs.hex())  # Read and print the received data
             
@@ -219,7 +216,6 @@ def getFunctionPayload():
                 print("\nPayload HASH does not match")
                 print("the  computed HASH: ", computed_hash.hex())
                 print("the decrypted HASH: ", decrypted_HASH.hex())
-            time.sleep(0.05)    
             return
 
 def decryptPayloadWithAES():
@@ -252,23 +248,14 @@ def decryptPayloadWithRSA():
             print("RSA decrypted array: ", decrypted_array.hex())
             return
 
-def printElapsedTime():
-    while True:
-        if(ser.in_waiting > 0):
-            time.sleep(0.1)
-            bs = ser.read(ser.in_waiting)  # Clear the buffer
-            print("\n\nElapsed time: ", int.from_bytes(bs, 'little'), " miliseconds")
-            # time.sleep(0.05)
-            return
-
 def simpleTerminal(): 
     print("simple terminal\n")
     while True:
         if(ser.in_waiting > 0):
+            time.sleep(0.1)
             print("\n", bs.hex())
             bs = ser.read(ser.in_waiting)  # Clear the buffer
             return
-        time.sleep(0.05)
         
 
 if __name__ == "__main__":
@@ -277,7 +264,5 @@ if __name__ == "__main__":
     getPublicKey()
     getPrivateKey()
     getFunctionPayload()
-    # decryptPayloadWithAES()
-    # printElapsedTime()
-    # decryptPayloadWithRSA()
-    # printElapsedTime()
+    decryptPayloadWithAES()
+    decryptPayloadWithRSA()
