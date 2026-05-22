@@ -43,7 +43,9 @@ def executeDiffieHellman():
                 last_printed_state = state
             
             if(ser.in_waiting > 0):
+                time.sleep(0.1)
                 bs = ser.read(ser.in_waiting)  # Clear the buffer
+
                 print("Data received:", bs.hex())  # Read and print the received data
 
                 command = bs[0]
@@ -53,6 +55,7 @@ def executeDiffieHellman():
                     state = "NEGOTIATING"
                 else:
                     state = "CLOSED"
+            time.sleep(0.05)
         
         elif state == "NEGOTIATING":
             if last_printed_state != state:
@@ -70,12 +73,13 @@ def executeDiffieHellman():
         
         elif state == "WAITINGFORSECRET":
             if last_printed_state != state:
-                print("\nState: WAITINGFORSECRET")
-                
+                print("\nState: WAITINGFORSECRET")                
                 last_printed_state = state        
+
             if(ser.in_waiting > 0):
+                time.sleep(0.1) # delay to permit every byte to be read from serial
                 bs = ser.read(ser.in_waiting)  # Clear the buffer
-                print("Data received:", bs)  # Read and print the received data
+                print("Data received:", bs.hex())  # Read and print the received data
                 
                 command = bs[0]
                 val1 = bs[1:9]
@@ -94,7 +98,7 @@ def executeDiffieHellman():
                         key_list.append(ss_bytes[i])      # MSB, MSB-1...
                         key_list.append(ss_bytes[7 - i])  # LSB, LSB+1...
                     # KEY = bytes(key_list)
-                
+                time.sleep(0.05)
                 state = "CLOSED"
         elif state == "CLOSED":
             if last_printed_state != state:
@@ -104,51 +108,14 @@ def executeDiffieHellman():
             state = "IDLE"
             return
 
-        time.sleep(0.05)
-    
 
 def getPublicKey():
+    print("\n\nGetting public key...")
     while True:
         if(ser.in_waiting > 0):
+            time.sleep(0.1)
             bs = ser.read(ser.in_waiting)
-            print("Key data received:", bs.hex())  # Read and print the received data
-            
-            # received_hash = bs[0:4]
-            # ciphertext = bs[4:20]
-            ciphertext = bs
-            # computed_hash = compute_hash(ciphertext, 16)
-
-            # if computed_hash == int.from_bytes(received_hash, 'little'):
-                #if the hashes match, do the rest
-            # print("\nKey HASH matches! Here is the payload bytes:") 
-            cipher = Cipher(algorithms.AES(KEY), modes.ECB(), backend=default_backend())
-            decryptor = cipher.decryptor()
-            try:
-                decrypted_payload = decryptor.update(ciphertext) + decryptor.finalize()
-                print("AES Decryption Successful!")
-                print("Decrypted Data (hex):", decrypted_payload.hex())
-
-                global RSA_e, RSA_n
-                #store in inverse order
-                RSA_e = decrypted_payload[0:8][::-1]
-                RSA_n = decrypted_payload[8:16][::-1]
-                
-            except Exception as e:
-                print("Decryption failed:", e)                    
-            # else:
-            #     print("\nKey HASH does not match")
-            #     print("the received hash: ", received_hash.hex())
-            #     print("the computed hash: ", computed_hash.to_bytes(4, 'little').hex())
-            
-            return
-
-        time.sleep(0.8)
-
-def getPrivateKey():
-    while True:
-        if(ser.in_waiting > 0):
-            bs = ser.read(ser.in_waiting)
-            print("\n\nKey data received:", bs.hex())  # Read and print the received data
+            print("Public key data received:", bs.hex())  # Read and print the received data
             
             received_hash = bs[0:4]
             ciphertext = bs[4:20]
@@ -156,8 +123,43 @@ def getPrivateKey():
 
             if computed_hash == int.from_bytes(received_hash, 'little'):
                 #if the hashes match, do the rest
-                print("\nKey HASH matches! Here is the payload bytes:") 
-                print("Received Data (hex):", ciphertext.hex())
+                print("Public key HASH matches! Here is the payload bytes:") 
+                cipher = Cipher(algorithms.AES(KEY), modes.ECB(), backend=default_backend())
+                decryptor = cipher.decryptor()
+                try:
+                    decrypted_payload = decryptor.update(ciphertext) + decryptor.finalize()
+                    print("AES Decryption Successful!")
+                    print("Decrypted Data (hex):", decrypted_payload.hex())
+
+                    global RSA_e, RSA_n
+                    #store in inverse order
+                    RSA_e = decrypted_payload[0:8][::-1]
+                    RSA_n = decrypted_payload[8:16][::-1]
+                    
+                except Exception as e:
+                    print("Decryption failed:", e)                    
+            else:
+                print("\nKey HASH does not match")
+                print("the received hash: ", received_hash.hex())
+                print("the computed hash: ", computed_hash.to_bytes(4, 'little').hex())
+            return
+
+def getPrivateKey():
+    print("\n\nGetting private key...")
+
+    while True:
+        if(ser.in_waiting > 0):
+            time.sleep(0.1)
+            bs = ser.read(ser.in_waiting)
+            print("Key data received:", bs.hex())  # Read and print the received data
+            
+            received_hash = bs[0:4]
+            ciphertext = bs[4:20]
+            computed_hash = compute_hash(ciphertext, 16)
+
+            if computed_hash == int.from_bytes(received_hash, 'little'):
+                #if the hashes match, do the rest
+                print("Key HASH matches! Here is the payload bytes:") 
                 cipher = Cipher(algorithms.AES(KEY), modes.ECB(), backend=default_backend())
                 decryptor = cipher.decryptor()
                 try:
@@ -175,14 +177,13 @@ def getPrivateKey():
                 print("\nKey HASH does not match")
                 print("the received hash: ", received_hash.hex())
                 print("the computed hash: ", computed_hash.to_bytes(4, 'little').hex())
-            
+            time.sleep(0.05)
             return
-
-        time.sleep(0.8)
 
 def getFunctionPayload():
     while True:
         if(ser.in_waiting > 0):
+            time.sleep(0.2)
             bs = ser.read(ser.in_waiting)
             print("\nPayload data received:", bs.hex())  # Read and print the received data
             
@@ -218,12 +219,13 @@ def getFunctionPayload():
                 print("\nPayload HASH does not match")
                 print("the  computed HASH: ", computed_hash.hex())
                 print("the decrypted HASH: ", decrypted_HASH.hex())
+            time.sleep(0.05)    
             return
-        time.sleep(1.1)
 
 def decryptPayloadWithAES():
     while True:
         if(ser.in_waiting > 0):
+            time.sleep(0.1)
             bs = ser.read(ser.in_waiting)
             print("\n AES encrypted data received:", bs.hex())  # Read and print the received data
             cipher = Cipher(algorithms.AES(KEY), modes.ECB(), backend=default_backend())
@@ -231,11 +233,11 @@ def decryptPayloadWithAES():
             decrypted_payload = decryptor.update(bs) + decryptor.finalize()
             print("AES decrypted array:", decrypted_payload.hex())
             return
-        time.sleep(1.5)
 
 def decryptPayloadWithRSA():
     while True:
         if(ser.in_waiting > 0):
+            time.sleep(0.1)
             bs = ser.read(ser.in_waiting)
             print("\n RSA encrypted data received::", bs.hex())  # Read and print the received data
             d_int = int.from_bytes(RSA_d, 'big')
@@ -249,11 +251,11 @@ def decryptPayloadWithRSA():
                 decrypted_array.extend(decrypted_chunk)
             print("RSA decrypted array: ", decrypted_array.hex())
             return
-        time.sleep(1.5)
 
 def printElapsedTime():
     while True:
         if(ser.in_waiting > 0):
+            time.sleep(0.1)
             bs = ser.read(ser.in_waiting)  # Clear the buffer
             print("\n\nElapsed time: ", int.from_bytes(bs, 'little'), " miliseconds")
             # time.sleep(0.05)
@@ -263,18 +265,18 @@ def simpleTerminal():
     print("simple terminal\n")
     while True:
         if(ser.in_waiting > 0):
-            bs = ser.read(ser.in_waiting)  # Clear the buffer
             print("\n", bs.hex())
+            bs = ser.read(ser.in_waiting)  # Clear the buffer
             return
         time.sleep(0.05)
         
 
 if __name__ == "__main__":
-    # executeDiffieHellman()
+    executeDiffieHellman()
     # simpleTerminal()
     getPublicKey()
-    # getPrivateKey()
-    # getFunctionPayload()
+    getPrivateKey()
+    getFunctionPayload()
     # decryptPayloadWithAES()
     # printElapsedTime()
     # decryptPayloadWithRSA()
