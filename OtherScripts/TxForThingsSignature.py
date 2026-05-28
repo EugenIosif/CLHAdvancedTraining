@@ -3,6 +3,7 @@ import time
 import random
 import hashlib
 from cryptography.hazmat.primitives.ciphers import Cipher, algorithms, modes
+from cryptography.hazmat.primitives import serialization
 from cryptography.hazmat.backends import default_backend
 
 EXCHANGEINITIALIZATION = 0x01
@@ -116,31 +117,16 @@ def getPublicKey():
             print("Public key data received:", bs.hex())  # Read and print the received data
             
             received_hash = bs[0:4]
-            ciphertext = bs[4:20]
-            computed_hash = compute_hash(ciphertext, 16)
+            ciphertext = bs[4::]
+            computed_hash = compute_hash(ciphertext, len(ciphertext))
 
             if computed_hash == int.from_bytes(received_hash, 'little'):
                 #if the hashes match, do the rest
-                print("Public key HASH matches! Here is the payload bytes:") 
-                cipher = Cipher(algorithms.AES(KEY), modes.ECB(), backend=default_backend())
-                decryptor = cipher.decryptor()
-                try:
-                    decrypted_payload = decryptor.update(ciphertext) + decryptor.finalize()
-                    print("AES Decryption Successful!")
-                    print("Decrypted Data (hex):", decrypted_payload.hex())
+                print("Public key HASH matches! Decoding public key...")
+                public_key = serialization.load_pem_public_key(bs, backend=default_backend())
+                pub_der = public_key.public_bytes(encoding=serialization.Encoding.DER, format=serialization.PublicFormat.PKCS1)
 
-                    global RSA_e, RSA_n
-                    #store in inverse order
-                    RSA_e = decrypted_payload[0:8][::-1]
-                    RSA_n = decrypted_payload[8:16][::-1]
-                    
-                except Exception as e:
-                    print("Decryption failed:", e)                    
-            else:
-                print("\nKey HASH does not match")
-                print("the received hash: ", received_hash.hex())
-                print("the computed hash: ", computed_hash.to_bytes(4, 'little').hex())
-            return
+
 
 def getPrivateKey():
     print("\n\nGetting private key...")

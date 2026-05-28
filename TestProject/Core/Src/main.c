@@ -23,13 +23,18 @@
 /* USER CODE BEGIN Includes */
 #include <wolfssl/wolfcrypt/settings.h>
 #include <wolfssl/wolfcrypt/aes.h>
+#include <wolfssl/wolfcrypt/rsa.h>
+#include <wolfssl/wolfcrypt/random.h>
+#include <wolfssl/wolfcrypt/error-crypt.h>
+
 #include <stdio.h>
 #include <stdint.h>
 #include <string.h>
 #include <stdbool.h>
 #include <stm32u5xx_hal_def.h>
 #include "memController.h"
-#include "rsa_implementation.h"
+#include "RSA_keys_newImplementation.h"
+// #include "rsa_implementation.h"
 
 /* USER CODE END Includes */
 
@@ -40,7 +45,6 @@
 
 /* Private define ------------------------------------------------------------*/
 /* USER CODE BEGIN PD */
-#define REPLACEWITHENCRYPTEDDATA_FUNCLEN 240
 #define UART_DATA_LENGTH 9
 #define IDLE 0
 #define NEGOTIATING 1
@@ -51,6 +55,13 @@
 #define SECRETTANSMISSION 0x02
 #define SECRETRECEIVED 0x03
 #define ENCRYPTEDMESSAGERECEPTION 0x04
+
+#define MAX_ENCRYPT_SIZE 256
+#define RSA_KEY_SIZE 2048
+
+#define KEY_TRANSMISSION 0x01
+#define PAYLOAD_TRANSMISSION 0x02
+
 /* USER CODE END PD */
 
 /* Private macro -------------------------------------------------------------*/
@@ -134,7 +145,7 @@ static void MX_RNG_Init(void);
 
 static void MX_USART1_UART_Init(void);
 uint32_t computeHash (const uint8_t * bytes, size_t numberOfBytes);
-uint8_t * prepareTransmission(uint8_t * transmissionBuffer, uint8_t size);
+uint8_t * prepareTransmission(const uint8_t * transmissionBuffer, uint8_t size, uint8_t mode);
 void simpleXORencrypt (uint8_t * bufferToEncrypt, uint8_t size);
 HAL_StatusTypeDef ComputeSHA256WithHAL(uint8_t * startAddress, uint32_t length, uint8_t *outputHash);
 void bytes_to_hex_string(uint8_t * inbuff, uint8_t size, uint8_t * outbuff);
@@ -209,34 +220,34 @@ HAL_StatusTypeDef ComputeSHA256WithHAL(uint8_t * startAddress, uint32_t length, 
     status = HAL_HASHEx_SHA256_Start(&hhash, startAddress, length, outputHash, HAL_MAX_DELAY);
     return status;
 }
+//
+//void encryptU32WithRSA(uint32_t * inputValue, uint64_t * outputValue)
+//{
+//	if(inputValue != NULL && outputValue != NULL)
+//	{
+//		uint32ToBytes inputTempValue;
+//		uint64ToBytes outputTempValue[8];
+//		//8 entries in the array
+//		for(uint8_t i = 0; i < 8; i++)
+//		{
+//		  //used for byte access of the input
+//		  inputTempValue.value = inputValue[i];
+//		  uint8_t dummyArray[8] = {0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00};
+//		  memcpy(dummyArray+4, inputTempValue.bytes, 4);
+////      KEY_GENERATION;
+//		  RSA_ENCRYPTION_IF(dummyArray, outputTempValue[i].bytes);
+//		}
+//	}
+//}
 
-void encryptU32WithRSA(uint32_t * inputValue, uint64_t * outputValue)
-{
-	if(inputValue != NULL && outputValue != NULL)
-	{
-		uint32ToBytes inputTempValue;
-		uint64ToBytes outputTempValue[8];
-		//8 entries in the array
-		for(uint8_t i = 0; i < 8; i++)
-		{
-		  //used for byte access of the input
-		  inputTempValue.value = inputValue[i];
-		  uint8_t dummyArray[8] = {0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00};
-		  memcpy(dummyArray+4, inputTempValue.bytes, 4);
-      KEY_GENERATION;
-		  RSA_ENCRYPTION_IF(dummyArray, outputTempValue[i].bytes);
-		}
-	}
-}
-
-uint8_t * prepareTransmission(uint8_t * inputBuffer, uint8_t size)
+uint8_t * prepareTransmission(const uint8_t * inputBuffer, uint8_t size, uint8_t mode)
 {
   static uint8_t buffer[TRANSMISSION_BYTE_LEN];
   //reset the previous content of buffer
   memset(buffer, 0x00, sizeof(buffer));
   if(inputBuffer != NULL && size > 0)
   {
-    if(size == 16)
+    if(mode == KEY_TRANSMISSION)
     {
       //we are here because we are trying to transmit a key to the other side. 
       //Hence the 16 bytes -> only the 4 byte hash needed.
@@ -246,13 +257,13 @@ uint8_t * prepareTransmission(uint8_t * inputBuffer, uint8_t size)
       memcpy(&buffer[0], tempValue.bytes, 4);
       memcpy(&buffer[4], inputBuffer, size);
     }
-    else
+    else if(mode == PAYLOAD_TRANSMISSION)
     {
       //we are here because we are trying to transmit The contents of a function to the other side.
       //SHA256 is used for this
       uint8_t ouputHash[32];
       memset(ouputHash, 0x00, 32);
-      ComputeSHA256WithHAL(inputBuffer, size, ouputHash);
+      ComputeSHA256WithHAL((const uint8_t*)inputBuffer, size, ouputHash);
 
       memcpy(&buffer[0], ouputHash, 32);
       memcpy(&buffer[32], inputBuffer, size);
@@ -292,11 +303,11 @@ void executeDiffieHellman(void)
                 uint8_t privIntermediaryArr[8] = {0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00};
                 uint8_t nArr[8] = {0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00};
 
-                u64_to_u8_array(DH_n, nArr);
-                u64_to_u8_array(DH_myPrivateIntermediary, privIntermediaryArr);
+//                u64_to_u8_array(DH_n, nArr);
+//                u64_to_u8_array(DH_myPrivateIntermediary, privIntermediaryArr);
                 uint8_t shared_key_arr[8] = {0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00};
                 
-                COMPUTE_DH_KEY(&uart_data_rx[1], shared_key_arr, privIntermediaryArr, nArr);
+//                COMPUTE_DH_KEY(&uart_data_rx[1], shared_key_arr, privIntermediaryArr, nArr);
                 uint8_t keyBuffer[16];
                 memset(keyBuffer, 0x00, 16);
                 for(uint8_t i = 0; i < 16; i+=2)
@@ -312,14 +323,14 @@ void executeDiffieHellman(void)
         {
             //Transition logic for NEGOCIATING
             uint8_t temporaryU64[8] = {0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00};
-            uint8_t eArr[8] = {0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00};
-            uint8_t nArr[8] = {0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00};
-            uint8_t privIntArr[8] = {0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00};            
+//            uint8_t eArr[8] = {0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00};
+//            uint8_t nArr[8] = {0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00};
+//            uint8_t privIntArr[8] = {0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00};
 
-            u64_to_u8_array(DH_e, eArr);
-            u64_to_u8_array(DH_n, nArr);
-            u64_to_u8_array(DH_myPrivateIntermediary, privIntArr);
-            COMPUTE_DH_KEY(eArr, temporaryU64, privIntArr, nArr);
+//            u64_to_u8_array(DH_e, eArr);
+//            u64_to_u8_array(DH_n, nArr);
+//            u64_to_u8_array(DH_myPrivateIntermediary, privIntArr);
+//            COMPUTE_DH_KEY(eArr, temporaryU64, privIntArr, nArr);
             
             uart_data_tx[0] = SECRETTANSMISSION;
             memcpy(uart_data_tx+1, temporaryU64, 8);
@@ -412,15 +423,26 @@ int main(void)
 
   printf("\n\rWelcome to STM32 world !\n\r");
 
-  uint8_t returnBuffer[16] = {0x12, 0x34, 0x56, 0x78, 0x9A, 0xBC, 0xDE, 0xF0, 0x12, 0x34, 0x56, 0x78, 0x9A, 0xBC, 0xDE, 0xF0};
-  uint8_t transmissionBuffer[20] = {0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00};
-  uint8_t updateBuffer[240];
-  memset (updateBuffer, 0x00, 240);
-  KEY_GENERATION;
+  uint8_t transmissionBuffer[240];
+  memset (transmissionBuffer, 0x00, 240);
+  // KEY_GENERATION;
   Aes aes;
   wc_AesInit(&aes, NULL, INVALID_DEVID);
   wc_AesSetKey(&aes, AES_key, 16, NULL, AES_ENCRYPTION);
-  
+
+	extern const uint8_t u8RSAPublicKey[];
+  extern const uint8_t u8RSAPrivateKey[];
+  RsaKey rsaKey;
+  WC_RNG rng;
+  wc_InitRng(&rng);
+  wc_InitRsaKey(&rsaKey, NULL);
+  //The index is used to ensure the right order of key usage
+  word32 u32index = 0;
+  wc_RsaPrivateKeyDecode(u8RSAPrivateKey, &u32index, &rsaKey, sizeof(u8RSAPrivateKey));
+  u32index = 0;
+  wc_RsaPublicKeyDecode(u8RSAPublicKey, &u32index, &rsaKey, sizeof(u8RSAPublicKey));
+  //Binding the Key and RNG
+  wc_RsaSetRNG(&rsaKey, &rng);
   // Aes
 
   /* -- Sample board code to switch on leds ---- */
@@ -448,32 +470,31 @@ int main(void)
       executeDiffieHellman();
       HAL_Delay(100);
 
-      returnPublicKey(returnBuffer, 16);      
-      wc_AesEcbEncrypt(&aes, returnBuffer, returnBuffer, WC_AES_BLOCK_SIZE);
-      memcpy(transmissionBuffer, prepareTransmission(returnBuffer, 16), 20);
-      HAL_UART_Transmit(&huart1, transmissionBuffer, 20, HAL_MAX_DELAY);
+      memcpy(transmissionBuffer, prepareTransmission(u8RSAPublicKey, sizeof(u8RSAPublicKey), KEY_TRANSMISSION), sizeof(u8RSAPublicKey)+4);
+      HAL_UART_Transmit(&huart1, transmissionBuffer, sizeof(u8RSAPublicKey)+4, HAL_MAX_DELAY);
 
-      HAL_Delay(1000);
+     HAL_Delay(1000);
+//
+////      returnPrivateKey(returnBuffer, 16);
+//      wc_AesEcbEncrypt(&aes, returnBuffer, returnBuffer, WC_AES_BLOCK_SIZE);
+//      memcpy(transmissionBuffer, prepareTransmission(returnBuffer, 16), 20);
+//      HAL_UART_Transmit(&huart1, transmissionBuffer, 20, HAL_MAX_DELAY);
+//
+//      HAL_Delay(1000);
 
-      returnPrivateKey(returnBuffer, 16);
-      wc_AesEcbEncrypt(&aes, returnBuffer, returnBuffer, WC_AES_BLOCK_SIZE);
-      memcpy(transmissionBuffer, prepareTransmission(returnBuffer, 16), 20);
-      HAL_UART_Transmit(&huart1, transmissionBuffer, 20, HAL_MAX_DELAY);
-
-      HAL_Delay(1000);
-
-      memcpy(updateBuffer, prepareTransmission((uint8_t *)dummyFunctionDataArray, 208), 240);
+      memcpy(transmissionBuffer, prepareTransmission((uint8_t *)dummyFunctionDataArray, 208, PAYLOAD_TRANSMISSION), 240);
 	    for(uint8_t i = 0; i < 32; i+=8)
       {
-          SIGN_CHUNK(updateBuffer+i, updateBuffer+i);
+          // SIGN_CHUNK(transmissionBuffer+i, transmissionBuffer+i);
+          wc_RsaPrivateDecrypt(transmissionBuffer+i, 8, transmissionBuffer+i, MAX_ENCRYPT_SIZE, &rsaKey);
       }
-      HAL_UART_Transmit(&huart1, updateBuffer, 240, HAL_MAX_DELAY);
+      HAL_UART_Transmit(&huart1, transmissionBuffer, 240, HAL_MAX_DELAY);
 
       HAL_Delay(1000);
       
       //AES encryption
       uint8_t AES_transmission_array[240] = {0x00};
-      memcpy(AES_transmission_array, updateBuffer, 240);
+      memcpy(AES_transmission_array, transmissionBuffer, 240);
       for(uint8_t i = 0; i < 240; i+=16)
       {
         wc_AesEcbEncrypt(&aes, AES_transmission_array + i, AES_transmission_array + i, WC_AES_BLOCK_SIZE);
@@ -484,10 +505,11 @@ int main(void)
       HAL_Delay(1000);
       //RSA encryption
      uint8_t RSA_transmission_array[240] = {0x00};
-     memcpy(RSA_transmission_array, updateBuffer, 240);
+     memcpy(RSA_transmission_array, transmissionBuffer, 240);
      for(uint8_t i = 0; i < 240; i+=8)
      {
-         RSA_ENCRYPTION_IF(RSA_transmission_array + i, RSA_transmission_array + i);
+        //  RSA_ENCRYPTION_IF(RSA_transmission_array + i, RSA_transmission_array + i);
+         wc_RsaPublicEncrypt(RSA_transmission_array + i, 8, RSA_transmission_array + i, 8, &rsaKey, &rng);
      }
 
      HAL_UART_Transmit(&huart1, RSA_transmission_array, 240, HAL_MAX_DELAY);
