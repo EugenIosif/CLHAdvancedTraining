@@ -15,7 +15,8 @@
 
 #include "main.h"
 #include "z_flash_W25QXXX.h"
-
+#define FLASH_CS_Pin GPIO_PIN_14
+#define FLASH_CS_GPIO_Port GPIOD
 #define SPI_IS_BUSY 	(HAL_GPIO_ReadPin(FLASH_CS_GPIO_Port, FLASH_CS_Pin)==GPIO_PIN_RESET)
 
 extern SPI_HandleTypeDef FLASH_SPI_PORT;
