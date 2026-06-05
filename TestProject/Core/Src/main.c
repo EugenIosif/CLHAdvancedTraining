@@ -136,6 +136,48 @@ void Read_device_ID(void)
 
   
 }
+
+
+void Read_backwards(void);
+
+
+void Read_backwards (void)
+{
+	uint32ToBytes payload;
+	uint32_t mask = 1;
+	payload.value = 0;
+	payload.value ^= mask;
+
+	uint8_t deviceID[2];
+	  Flash_Select();
+	  Flash_Transmit (payload.bytes, 4);
+	  Flash_Receive (deviceID, 2);
+	  Flash_UnSelect();
+	  printf ( "Device ID: %02X %02X\n", deviceID[0], deviceID[1]);
+
+
+}
+
+void Flash_read(void);
+
+void Flash_read (void)
+{
+	uint32_t adress = 0x3F0000;
+	uint8_t buffer [101] = {0};
+	uint32_t datasize = 100;
+
+	Flash_Read (adress, &buffer[0], datasize);
+	for (uint8_t i = 0; i<sizeof(buffer[i]); i++)
+	{
+		printf("%02X ", buffer[i]);
+
+	}
+	printf("\n \r");
+
+}
+
+
+
 /**
   * @brief USART1 Initialization Function
   * @param None
@@ -437,7 +479,8 @@ int main(void)
       uint16_t manufacturerAndDeviceID = 0 ;
 //      manufacturerAndDeviceID = Flash_ReadManufactutrerAndDevID();
 //      printf("Manufacturer and Device ID: %04X\n", manufacturerAndDeviceID);
-      Read_device_ID ();
+//      Read_device_ID ();
+      	Flash_read();
 
 //      executeDiffieHellman();
 //
