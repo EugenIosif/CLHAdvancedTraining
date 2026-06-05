@@ -212,13 +212,5 @@ uint8_t  Flash_Init();	//initialization: includes availability test and reset
 void 	 DataReader_WaitForReceiveDone();
 void 	 DataReader_ReadData(uint32_t address24, uint8_t* buffer, uint32_t length);
 void 	 DataReader_StartDMAReadData(uint32_t address24, uint8_t* buffer, uint32_t length);
-void 	 Flash_UnSelect(void);
-void 	 Flash_Select(void);
-void 	 Flash_Transmit(uint8_t* data, uint16_t dataSize);
-void 	 Flash_Receive(uint8_t* data, uint16_t dataSize);
-
-
-
-
 
 #endif /* INC_Z_FLASH_W25QXXX_H_ */
