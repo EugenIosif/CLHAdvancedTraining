@@ -203,6 +203,7 @@ void 	 Flash_BErase32k(uint32_t addr);
 void 	 Flash_BErase64k(uint32_t addr);
 void 	 Flash_ChipErase();
 void 	 Flash_PowerDown();
+void 	 Flash_PowerUp();
 uint8_t  Flash_ReadDevID();
 uint16_t Flash_ReadManufactutrerAndDevID();
 uint32_t Flash_ReadJedecID();
