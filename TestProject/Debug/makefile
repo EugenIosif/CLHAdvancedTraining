@@ -9,6 +9,7 @@ RM := rm -rf
 
 # All of the sources participating in the build are defined here
 -include sources.mk
+-include Middlewares/Third_Party/NimaLTD_Driver/SPIF/subdir.mk
 -include Drivers/STM32U5xx_HAL_Driver/Src/subdir.mk
 -include Drivers/BSP/STM32U5xx_Nucleo/subdir.mk
 -include Core/Startup/subdir.mk

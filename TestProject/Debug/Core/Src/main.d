@@ -40,9 +40,13 @@ Core/Src/main.o: ../Core/Src/main.c ../Core/Inc/main.h \
  ../Drivers/BSP/STM32U5xx_Nucleo/stm32u5xx_nucleo.h \
  ../Core/Inc/stm32u5xx_nucleo_conf.h \
  ../Drivers/BSP/STM32U5xx_Nucleo/stm32u5xx_nucleo_errno.h \
+ ../Core/Inc/adc.h ../Core/Inc/main.h ../Core/Inc/crc.h \
+ ../Core/Inc/hash.h ../Core/Inc/icache.h ../Core/Inc/spi.h \
+ ../Core/Inc/usart.h ../Core/Inc/gpio.h \
  ../Drivers/STM32U5xx_HAL_Driver/Inc/stm32u5xx_hal_def.h \
  ../Core/Inc/memController.h ../Core/Inc/aes.h \
- ../Core/Inc/rsa_implementation.h ../Core/Inc/z_flash_W25QXXX.h
+ ../Middlewares/Third_Party/NimaLTD_Driver/SPIF/spif.h \
+ ../I-CUBE-SPIF/NimaLTD.I-CUBE-SPIF_conf.h
 ../Core/Inc/main.h:
 ../Drivers/STM32U5xx_HAL_Driver/Inc/stm32u5xx_hal.h:
 ../Core/Inc/stm32u5xx_hal_conf.h:
@@ -85,8 +89,16 @@ Core/Src/main.o: ../Core/Src/main.c ../Core/Inc/main.h \
 ../Drivers/BSP/STM32U5xx_Nucleo/stm32u5xx_nucleo.h:
 ../Core/Inc/stm32u5xx_nucleo_conf.h:
 ../Drivers/BSP/STM32U5xx_Nucleo/stm32u5xx_nucleo_errno.h:
+../Core/Inc/adc.h:
+../Core/Inc/main.h:
+../Core/Inc/crc.h:
+../Core/Inc/hash.h:
+../Core/Inc/icache.h:
+../Core/Inc/spi.h:
+../Core/Inc/usart.h:
+../Core/Inc/gpio.h:
 ../Drivers/STM32U5xx_HAL_Driver/Inc/stm32u5xx_hal_def.h:
 ../Core/Inc/memController.h:
 ../Core/Inc/aes.h:
-../Core/Inc/rsa_implementation.h:
-../Core/Inc/z_flash_W25QXXX.h:
+../Middlewares/Third_Party/NimaLTD_Driver/SPIF/spif.h:
+../I-CUBE-SPIF/NimaLTD.I-CUBE-SPIF_conf.h:

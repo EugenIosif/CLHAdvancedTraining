@@ -230,7 +230,7 @@ uint32_t inpage_addr;
 		Flash_Transmit(buffer, 1);
 		Flash_UnSelect();
 		Flash_SimpleWriteAPage(addr+quota,data+quota,dataSize-quota);
-		Flash_WaitForWritingComplete();
+//		Flash_WaitForWritingComplete();
 	}
 }
 

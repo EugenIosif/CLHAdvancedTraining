@@ -26,4 +26,5 @@ Core/Src \
 Core/Startup \
 Drivers/BSP/STM32U5xx_Nucleo \
 Drivers/STM32U5xx_HAL_Driver/Src \
+Middlewares/Third_Party/NimaLTD_Driver/SPIF \
 
