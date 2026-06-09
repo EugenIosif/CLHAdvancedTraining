@@ -35,10 +35,10 @@
 
 #include <stm32u5xx_hal_def.h>
 #include "memController.h"
-// #include "spif.h"
+// #include "w25qxx.h"
+#include "spif.h"
 // #include "z_flash_W25QXXX.h"
 
-#include "w25qxx.h"
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -49,42 +49,10 @@
 /* Private define ------------------------------------------------------------*/
 /* USER CODE BEGIN PD */
 
-#define REPLACEWITHENCRYPTEDDATA_FUNCLEN 240
-#define UART_DATA_LENGTH 9
-#define IDLE 0
-#define NEGOTIATING 1
-#define WAITINGFORSECRET 2
-#define RECEIVEENCRYPTEDMESSAGE 3
-#define CLOSED 4
-#define EXCHANGEINITIALIZATION 0x01
-#define SECRETTANSMISSION 0x02
-#define SECRETRECEIVED 0x03
-#define ENCRYPTEDMESSAGERECEPTION 0x04
-
-
-#define PAGE_SIZE 4096
-
-#define DBG(...) printf(__VA_ARGS__);\
-
 /* USER CODE END PD */
 
 /* Private macro -------------------------------------------------------------*/
 /* USER CODE BEGIN PM */
-
-typedef union uint32ToBytes
-{
-  /* data */
-  uint32_t value;
-  uint8_t bytes[4];
-}uint32ToBytes;
-
-typedef union uint64ToBytes
-{
-  /* data */
-  uint32_t value;
-  uint8_t bytes[8];
-}uint64ToBytes;
-
 
 /* USER CODE END PM */
 
@@ -94,7 +62,7 @@ COM_InitTypeDef BspCOMInit;
 __IO uint32_t BspButtonState = BUTTON_RELEASED;
 
 /* USER CODE BEGIN PV */
-W25QXX_HandleTypeDef w25qxx; // Handler for all w25qxx operations!
+// W25QXX_HandleTypeDef w25qxx; // Handler for all w25qxx operations!
 
 
 /* USER CODE BEGIN PV */
@@ -108,28 +76,10 @@ static void SystemPower_Config(void);
 /* USER CODE BEGIN PFP */
 
 static void MX_USART1_UART_Init(void);
-uint32_t computeHash (const uint8_t * bytes, size_t numberOfBytes);
-uint8_t * prepareTransmission(uint8_t * transmissionBuffer, uint8_t size);
-void simpleXORencrypt (uint8_t * bufferToEncrypt, uint8_t size);
-HAL_StatusTypeDef ComputeSHA256WithHAL(uint32_t startAddress, uint32_t length, uint8_t *outputHash);
-void bytes_to_hex_string(uint8_t * inbuff, uint8_t size, uint8_t * outbuff);
-
-
-
-void Read_device_ID (void);
-
 /* USER CODE END PFP */
 
 /* Private user code ---------------------------------------------------------*/
 /* USER CODE BEGIN 0 */
-
-
-
-
-
-
-
-
 
 /**
   * @brief USART1 Initialization Function
@@ -178,140 +128,6 @@ static void MX_USART1_UART_Init(void)
   /* USER CODE END USART1_Init 2 */
 
 }
-void bytes_to_hex_string(uint8_t * inbuff, uint8_t size, uint8_t * outbuff)
-{
-    for (uint8_t i = 0; i < size; i++)
-    {
-        sprintf((char*)&outbuff[i * 2], "%02x", inbuff[i]);
-    }
-}
-
-HAL_StatusTypeDef ComputeSHA256WithHAL(uint32_t startAddress, uint32_t length, uint8_t *outputHash)
-{
-    HAL_StatusTypeDef status;
-    memset(outputHash, 0x00, 32);
-
-    status = HAL_HASHEx_SHA256_Start(&hhash, (uint8_t*)startAddress, length, outputHash, HAL_MAX_DELAY);
-    return status;
-}
-
-
-
-uint8_t * prepareTransmission(uint8_t * inputBuffer, uint8_t size)
-{
-  static uint8_t buffer[TRANSMISSION_BYTE_LEN];
-  //reset the previous content of buffer
-  memset(buffer, 0x00, sizeof(buffer));
-  if(inputBuffer != NULL && size > 0)
-  {
-    if(size == 16)
-    {
-      //we are here because we are trying to transmit a key to the other side. 
-      //Hence the 16 bytes -> only the 4 byte hash needed.
-      uint32ToBytes tempValue;
-      tempValue.value = 0;
-      tempValue.value = computeHash(inputBuffer, size);
-      memcpy(&buffer[0], tempValue.bytes, 4);
-      memcpy(&buffer[4], inputBuffer, size);
-    }
-    else
-    {
-      //we are here because we are trying to transmit The contents of a function to the other side.
-      //SHA256 is used for this
-      uint8_t ouputHash[32];
-      memset(ouputHash, 0x00, 32);
-      ComputeSHA256WithHAL((uint32_t)replaceWithEncryptedData, 208, ouputHash);
-
-      memcpy(&buffer[0], ouputHash, 32);
-      memcpy(&buffer[32], inputBuffer, size);
-    }
-  }
-  return buffer;
-}
-
-uint32_t computeHash(const uint8_t *bytes, size_t numberOfBytes) {
-    uint32_t hash = 0x811c9dc5;
-    for(size_t i = 0; i < numberOfBytes; i++) {
-        hash ^= bytes[i];
-        hash *= 0x01000193;
-    }
-    return hash;
-}
-
-//void executeDiffieHellman(void)
-//{
-//    uint8_t uart_data_tx[UART_DATA_LENGTH] = {0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00};
-//    uint8_t uart_data_rx[UART_DATA_LENGTH] = {0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00};
-//
-//    while(1)
-//    {
-//        if(state == IDLE)
-//        {
-//            uart_data_tx[0] = EXCHANGEINITIALIZATION; //signal the start of the exchange
-//            HAL_UART_Transmit(&huart1, (uint8_t*)uart_data_tx, UART_DATA_LENGTH, HAL_MAX_DELAY);
-//            BspButtonState = BUTTON_RELEASED;
-//            state = WAITINGFORSECRET;
-//        }
-//        else if(state == WAITINGFORSECRET)
-//        {
-//            HAL_UART_Receive(&huart1, (uint8_t*)uart_data_rx, UART_DATA_LENGTH, HAL_MAX_DELAY);
-//            if(uart_data_rx[0] == SECRETRECEIVED)
-//            {
-//                uint8_t privIntermediaryArr[8] = {0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00};
-//                uint8_t nArr[8] = {0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00};
-//
-//                u64_to_u8_array(DH_n, nArr);
-//                u64_to_u8_array(DH_myPrivateIntermediary, privIntermediaryArr);
-//                uint8_t shared_key_arr[8] = {0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00};
-//
-//                COMPUTE_DH_KEY(&uart_data_rx[1], shared_key_arr, privIntermediaryArr, nArr);
-//                uint8_t keyBuffer[16];
-//                memset(keyBuffer, 0x00, 16);
-//                for(uint8_t i = 0; i < 16; i+=2)
-//                {
-//                    keyBuffer[i] = shared_key_arr[i];
-//                    keyBuffer[i+1] = shared_key_arr[7-i];
-//                }
-//                WRITE_AES_KEY(keyBuffer);
-//                state = NEGOTIATING;
-//            }
-//        }
-//        else if(state == NEGOTIATING)
-//        {
-//            //Transition logic for NEGOCIATING
-//            // uint32_t dh_value = simple_rsa_encrypt(e, mypublickey, n);
-//            uint8_t temporaryU64[8] = {0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00};
-//            uint8_t eArr[8] = {0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00};
-//            uint8_t nArr[8] = {0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00};
-//            uint8_t privIntArr[8] = {0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00};
-//
-//            u64_to_u8_array(DH_e, eArr);
-//            u64_to_u8_array(DH_n, nArr);
-//            u64_to_u8_array(DH_myPrivateIntermediary, privIntArr);
-//            COMPUTE_DH_KEY(eArr, temporaryU64, privIntArr, nArr);
-//
-//            uart_data_tx[0] = SECRETTANSMISSION;
-//            memcpy(uart_data_tx+1, temporaryU64, 8);
-//            // uint64_t dh_value = u8_array_to_u64(temporaryU64);
-//
-//            // u64_to_u8_array(dh_value, uart_data_tx+1);
-//            HAL_UART_Transmit(&huart1, (uint8_t*)uart_data_tx, UART_DATA_LENGTH, HAL_MAX_DELAY);
-//
-//            state = CLOSED;
-//        }
-//
-//        else if(state == CLOSED)
-//        {
-//            state = IDLE;
-//            break;
-//        }
-//        else
-//        {
-//            state = IDLE;
-//            break;
-//        }
-//    }
-//}
 
 /* USER CODE END 0 */
 
@@ -381,7 +197,7 @@ int main(void)
   /* -- Sample board code to send message over COM1 port ---- */
 
   printf("\n\rWelcome to STM32 world !\n\r");
-  
+
   /* -- Sample board code to switch on leds ---- */
   BSP_LED_On(LED_GREEN);
   BSP_LED_On(LED_BLUE);
@@ -413,9 +229,11 @@ int main(void)
 
       // uint8_t buffer[8]= {0x01,0x02,0x03,0x04,0x05,0x06,0x07,0x08};
       // SPIF_WriteSector (&spifHandle, 1 , buffer, 8, 0);
-      // uint8_t readdata[8] = {0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00};
-      // SPIF_ReadSector (&spifHandle, 1, readdata, 8, 0);
-      // printf("Data read from SPI flash: %02x\n\r", readdata[7]);
+      // memset(buffer, 0x00, 8);
+      // SPIF_ReadSector (&spifHandle, 1, buffer, 8, 0);
+      // for(uint8_t i = 0; i<8; i++){
+      //   printf("Data read from SPI flash: %02x\n\r", buffer[i]);
+      // }
     }
     /* USER CODE END WHILE */
 
