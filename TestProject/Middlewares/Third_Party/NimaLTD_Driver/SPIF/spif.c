@@ -792,9 +792,21 @@ bool SPIF_Init(SPIF_HandleTypeDef *Handle, SPI_HandleTypeDef *HSpi, GPIO_TypeDef
   bool retVal = false;
   do
   {
-    if ((Handle == NULL) || (HSpi == NULL) || (Gpio == NULL) || (Handle->Inited == 1))
+    if ((Handle == NULL))
     {
-      dprintf("SPIF_Init() Error, Wrong Parameter\r\n");
+      dprintf("SPIF_Init() Error, Wrong Parameter: Handle\r\n");
+      break;
+    } else if(HSpi == NULL)
+    {
+      dprintf("SPIF_Init() Error, Wrong Parameter: SPI\r\n");
+      break;
+    } else if (Gpio == NULL)
+    {
+      dprintf("SPIF_Init() Error, Wrong Parameter: GPIO\r\n");
+      break;
+    } else if(Handle->Inited == 1)
+    {
+      dprintf("SPIF_Init() Error, Already Initialized\r\n");
       break;
     }
     memset(Handle, 0, sizeof(SPIF_HandleTypeDef));

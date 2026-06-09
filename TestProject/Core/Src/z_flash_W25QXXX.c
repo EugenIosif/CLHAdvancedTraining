@@ -55,7 +55,7 @@ void Flash_UnSelect(void) {
 
 
 
-void Flash_Receive(uint8_t* data, uint16_t dataSize){
+void Flash_Receive(uint8_t* data, uint32_t dataSize){
 	HAL_SPI_Receive (&FLASH_SPI_PORT , data, dataSize, HAL_MAX_DELAY);
 }
 
@@ -67,7 +67,7 @@ void Flash_Receive(uint8_t* data, uint16_t dataSize){
  * @PARAM	data		buffer data to send
  * 			dataSize	number of bytes in "data" to be sent
  *********************************************************************/
-void Flash_Polling_Transmit(uint8_t* data, uint16_t dataSize){
+void Flash_Polling_Transmit(uint8_t* data, uint32_t dataSize){
 	HAL_SPI_Transmit(&FLASH_SPI_PORT , data, dataSize, HAL_MAX_DELAY);
 }
 
@@ -82,7 +82,7 @@ void Flash_Polling_Transmit(uint8_t* data, uint16_t dataSize){
  * @PARAM	data		buffer data to send
  * 			dataSize	number of bytes in "data" to be sent
  **************************/
-void Flash_Transmit(uint8_t* data, uint16_t dataSize){
+void Flash_Transmit(uint8_t* data, uint32_t dataSize){
 #ifndef	EXT_FLASH_SPI_POLLING_MODE
 	if (dataSize<EXT_FLASH_DMA_CUTOFF) {
 #endif //FLASH_SPI_POLLING_MODE
@@ -129,7 +129,7 @@ uint8_t buffer[1];
  * 			dataSize	number of bytes to read
  **************************/
 void Flash_Read(uint32_t addr, uint8_t* data, uint32_t dataSize){
-uint16_t data_to_transfer;
+uint32_t data_to_transfer;
 uint8_t buffer[5];
 
 	buffer[0] = FLASH_READ_COMMAND;
@@ -142,7 +142,7 @@ uint8_t buffer[5];
 
 	// dataSize is 32 bit, spi_receive handles 16bit transfers, so I have to loop...
 	while (dataSize) {
-		data_to_transfer = ((dataSize>0xFFFF) ? 0xFFFF : (uint16_t)dataSize);
+		data_to_transfer = ((dataSize>0xFFFF) ? 0xFFFF : (uint32_t)dataSize);
 		Flash_Receive(data, data_to_transfer);
 		data+=data_to_transfer;
 		dataSize-=data_to_transfer;
@@ -167,7 +167,7 @@ uint8_t buffer[5];
  *  		data		buffer containing data to write into EEPROM
  * 			dataSize	number of bytes to write
  ***********************************************************************/
-void Flash_SimpleWriteAPage(uint32_t addr, uint8_t* data, uint16_t dataSize){
+void Flash_SimpleWriteAPage(uint32_t addr, uint8_t* data, uint32_t dataSize){
 uint8_t buffer[4];
 	buffer[0] = W25_PAGE_P;
 	buffer[1] = (addr >> 16) & 0xFF;
@@ -196,7 +196,7 @@ uint8_t buffer[4];
  ***********************************************************************/
 void Flash_Write(uint32_t addr, uint8_t* data, uint32_t dataSize){
 uint8_t buffer[4];
-uint16_t quota;
+uint32_t quota;
 uint32_t inpage_addr;
 
 	if (dataSize==0)
@@ -406,9 +406,9 @@ uint8_t data;
 
 
 
-uint16_t Flash_ReadManufactutrerAndDevID() {
+uint32_t Flash_ReadManufactutrerAndDevID() {
 uint8_t buffer[4];
-uint16_t data;
+uint32_t data;
 
 	buffer[0] = W25_POWERUP_ID;
 	buffer[1] = W25_DUMMY;

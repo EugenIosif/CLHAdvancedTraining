@@ -56,13 +56,13 @@
  ********* chip memory used in the project *********
  ***************************************************/
 /* active information */
-#define EXT_FLASH_PAGE_SIZE		0x0100		//256b 		page size (bits)
-#define EXT_FLASH_SECTOR_SIZE	0x1000		//4kB 		sector size (bytes)
-#define EXT_FLASH_BLOCK_SIZE	0x00010000	//64kB 		block size (bytes)
-#define EXT_FLASH_SIZE			0X00100000	//1MB-8Mb	total size (bytes)
-#define EXT_FLASH_PAGE_NUM		0x1000		//4096 		pages
-#define EXT_FLASH_SECTOR_NUM	0x0100		//256 		sectors
-#define EXT_FLASH_BLOCK_NUM		0x0010		//16 		blocks
+#define EXT_FLASH_PAGE_SIZE		0x0100		//256b 		page size
+#define EXT_FLASH_SECTOR_SIZE	0x1000		//4kB 		sector si
+#define EXT_FLASH_BLOCK_SIZE	0x00010000	//64kB 		block siz
+#define EXT_FLASH_SIZE			0X00800000	//8MB-64Mb	total siz
+#define EXT_FLASH_PAGE_NUM		0x8000		//32768		pages
+#define EXT_FLASH_SECTOR_NUM	0x0800		//2048 		sectors
+#define EXT_FLASH_BLOCK_NUM		0x0080		//128		blocks
 
 
 /* here values for the W25Q80DV/DL chips
@@ -205,7 +205,7 @@ void 	 Flash_ChipErase();
 void 	 Flash_PowerDown();
 void 	 Flash_PowerUp();
 uint8_t  Flash_ReadDevID();
-uint16_t Flash_ReadManufactutrerAndDevID();
+uint32_t Flash_ReadManufactutrerAndDevID();
 uint32_t Flash_ReadJedecID();
 void 	 Flash_ReadSFDP(uint8_t* data);
 void 	 Flash_Reset();

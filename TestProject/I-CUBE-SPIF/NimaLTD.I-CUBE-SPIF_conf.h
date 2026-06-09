@@ -40,7 +40,7 @@
 	MiddleWare fileName : NimaLTD.I-CUBE-SPIF_conf.h
 */
 /*---------- SPIF_DEBUG  -----------*/
-#define SPIF_DEBUG      SPIF_DEBUG_DISABLE
+#define SPIF_DEBUG      SPIF_DEBUG_FULL
 
 /*---------- SPIF_PLATFORM  -----------*/
 #define SPIF_PLATFORM      SPIF_PLATFORM_HAL

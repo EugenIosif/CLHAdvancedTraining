@@ -35,8 +35,10 @@
 
 #include <stm32u5xx_hal_def.h>
 #include "memController.h"
-#include "spif.h"
+// #include "spif.h"
+// #include "z_flash_W25QXXX.h"
 
+#include "w25qxx.h"
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -58,6 +60,12 @@
 #define SECRETTANSMISSION 0x02
 #define SECRETRECEIVED 0x03
 #define ENCRYPTEDMESSAGERECEPTION 0x04
+
+
+#define PAGE_SIZE 4096
+
+#define DBG(...) printf(__VA_ARGS__);\
+
 /* USER CODE END PD */
 
 /* Private macro -------------------------------------------------------------*/
@@ -86,6 +94,7 @@ COM_InitTypeDef BspCOMInit;
 __IO uint32_t BspButtonState = BUTTON_RELEASED;
 
 /* USER CODE BEGIN PV */
+W25QXX_HandleTypeDef w25qxx; // Handler for all w25qxx operations!
 
 
 /* USER CODE BEGIN PV */
@@ -372,26 +381,22 @@ int main(void)
   /* -- Sample board code to send message over COM1 port ---- */
 
   printf("\n\rWelcome to STM32 world !\n\r");
-
-  struct AES_ctx ctx;
-  AES_init_ctx(&ctx, AES_key);
-  uint8_t returnBuffer[16] = {0x12, 0x34, 0x56, 0x78, 0x9A, 0xBC, 0xDE, 0xF0, 0x12, 0x34, 0x56, 0x78, 0x9A, 0xBC, 0xDE, 0xF0};
-  uint8_t transmissionBuffer[20] = {0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00};
-  uint8_t updateBuffer[240];
-  memset (updateBuffer, 0x00, 240);
-  HAL_GPIO_WritePin(GPIOD, GPIO_PIN_14, GPIO_PIN_SET);
+  
   /* -- Sample board code to switch on leds ---- */
   BSP_LED_On(LED_GREEN);
   BSP_LED_On(LED_BLUE);
   BSP_LED_On(LED_RED);
+  
+  //config for SPIF
+  SPIF_HandleTypeDef spifHandle;
+  spifHandle.Inited = 0;
+  GPIO_TypeDef *localGPIO = GPIOD;
+  SPIF_Init (&spifHandle, &hspi1, localGPIO, GPIO_PIN_14);
 
-
- SPIF_HandleTypeDef spifHandle;
   /* USER CODE END BSP */
 
   /* Infinite loop */
   /* USER CODE BEGIN WHILE */
-
 
   while (1)
   {
@@ -404,79 +409,13 @@ int main(void)
       BSP_LED_Toggle(LED_GREEN);
       BSP_LED_Toggle(LED_BLUE);
       BSP_LED_Toggle(LED_RED);
-      uint8_t var = 0x00;
-      uint8_t buffer[8]= {0x01,0x02,0x03,0x04,0x05,0x06,0x07,0x08};
-      SPIF_Init (&spifHandle, &hspi1, GPIOD, GPIO_PIN_14);
-      SPIF_WriteSector (&spifHandle, 1 , buffer, 8, 0);
-      uint8_t readdata[8] = {0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00};
-      SPIF_ReadSector (&spifHandle, 1, readdata, 8, 0);
-      printf("Data read from SPI flash: %02x\n\r", readdata[7]);
-//      executeDiffieHellman();
-//
-//      HAL_Delay(1000);
-//
-//      returnPublicKey(returnBuffer, 16);
-//      AES_ECB_encrypt(&ctx, returnBuffer);
-//      memcpy(transmissionBuffer, prepareTransmission(returnBuffer, 16), 20);
-//      HAL_UART_Transmit(&huart1, transmissionBuffer, 20, HAL_MAX_DELAY);
-//
-//      HAL_Delay(1000);
-//
-//      returnPrivateKey(returnBuffer, 16);
-//      AES_ECB_encrypt(&ctx, returnBuffer);
-//      memcpy(transmissionBuffer, prepareTransmission(returnBuffer, 16), 20);
-//      HAL_UART_Transmit(&huart1, transmissionBuffer, 20, HAL_MAX_DELAY);
-//
-//      HAL_Delay(1000);
-//
-//      memcpy(updateBuffer, prepareTransmission((uint8_t *)replaceWithEncryptedData, 208), 240);
-//	    for(uint8_t i = 0; i < 32; i+=8)
-//      {
-//          uint8_t tempArray[8] = {0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00};
-//          SIGN_CHUNK(updateBuffer+i, tempArray);
-//          memcpy(updateBuffer+i, tempArray, 8);
-//      }
-//      HAL_UART_Transmit(&huart1, updateBuffer, 240, HAL_MAX_DELAY);
-//
-//      HAL_Delay(1000);
-//
-//      //AES encryption
-//      uint8_t AES_transmission_array[240] = {0x00};
-//      memcpy(AES_transmission_array, updateBuffer, 240);
-//      uint32_t startTime = HAL_GetTick();
-//      for(uint8_t i = 0; i < 240; i+=16)
-//      {
-//        AES_ECB_encrypt(&ctx, AES_transmission_array+i);
-//      }
-//      uint32_t endTime = HAL_GetTick();
-//
-//      HAL_UART_Transmit(&huart1, AES_transmission_array, 240, HAL_MAX_DELAY);
-//
-//      HAL_Delay(1000);
-//
-//      uint32_t elapsedTime = endTime - startTime;
-//
-//      HAL_UART_Transmit(&huart1, (uint8_t *)&elapsedTime, 4, HAL_MAX_DELAY);
-//      HAL_Delay(1000);
-//
-//      //RSA encryption
-//      uint8_t RSA_transmission_array[240] = {0x00};
-//      memcpy(RSA_transmission_array, updateBuffer, 240);
-//      startTime = HAL_GetTick();
-//      for(uint8_t i = 0; i < 240; i+=8)
-//      {
-//          RSA_ENCRYPTION_IF(RSA_transmission_array + i, RSA_transmission_array + i);
-//      }
-//      endTime = HAL_GetTick();
-//
-//      HAL_UART_Transmit(&huart1, RSA_transmission_array, 240, HAL_MAX_DELAY);
-//      HAL_Delay(1000);
-//
-//      elapsedTime = endTime - startTime;
-//      HAL_UART_Transmit(&huart1, (uint8_t *)&elapsedTime, 4, HAL_MAX_DELAY);
-//      HAL_Delay(1000);
+      /* ..... Perform your action ..... */
 
-	    /* ..... Perform your action ..... */
+      // uint8_t buffer[8]= {0x01,0x02,0x03,0x04,0x05,0x06,0x07,0x08};
+      // SPIF_WriteSector (&spifHandle, 1 , buffer, 8, 0);
+      // uint8_t readdata[8] = {0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00};
+      // SPIF_ReadSector (&spifHandle, 1, readdata, 8, 0);
+      // printf("Data read from SPI flash: %02x\n\r", readdata[7]);
     }
     /* USER CODE END WHILE */
 
@@ -496,7 +435,7 @@ void SystemClock_Config(void)
 
   /** Configure the main internal regulator output voltage
   */
-  if (HAL_PWREx_ControlVoltageScaling(PWR_REGULATOR_VOLTAGE_SCALE4) != HAL_OK)
+  if (HAL_PWREx_ControlVoltageScaling(PWR_REGULATOR_VOLTAGE_SCALE1) != HAL_OK)
   {
     Error_Handler();
   }
@@ -508,8 +447,17 @@ void SystemClock_Config(void)
   RCC_OscInitStruct.HSICalibrationValue = RCC_HSICALIBRATION_DEFAULT;
   RCC_OscInitStruct.MSIState = RCC_MSI_ON;
   RCC_OscInitStruct.MSICalibrationValue = RCC_MSICALIBRATION_DEFAULT;
-  RCC_OscInitStruct.MSIClockRange = RCC_MSIRANGE_4;
-  RCC_OscInitStruct.PLL.PLLState = RCC_PLL_NONE;
+  RCC_OscInitStruct.MSIClockRange = RCC_MSIRANGE_0;
+  RCC_OscInitStruct.PLL.PLLState = RCC_PLL_ON;
+  RCC_OscInitStruct.PLL.PLLSource = RCC_PLLSOURCE_MSI;
+  RCC_OscInitStruct.PLL.PLLMBOOST = RCC_PLLMBOOST_DIV4;
+  RCC_OscInitStruct.PLL.PLLM = 3;
+  RCC_OscInitStruct.PLL.PLLN = 10;
+  RCC_OscInitStruct.PLL.PLLP = 2;
+  RCC_OscInitStruct.PLL.PLLQ = 2;
+  RCC_OscInitStruct.PLL.PLLR = 1;
+  RCC_OscInitStruct.PLL.PLLRGE = RCC_PLLVCIRANGE_1;
+  RCC_OscInitStruct.PLL.PLLFRACN = 0;
   if (HAL_RCC_OscConfig(&RCC_OscInitStruct) != HAL_OK)
   {
     Error_Handler();
@@ -520,13 +468,13 @@ void SystemClock_Config(void)
   RCC_ClkInitStruct.ClockType = RCC_CLOCKTYPE_HCLK|RCC_CLOCKTYPE_SYSCLK
                               |RCC_CLOCKTYPE_PCLK1|RCC_CLOCKTYPE_PCLK2
                               |RCC_CLOCKTYPE_PCLK3;
-  RCC_ClkInitStruct.SYSCLKSource = RCC_SYSCLKSOURCE_MSI;
+  RCC_ClkInitStruct.SYSCLKSource = RCC_SYSCLKSOURCE_PLLCLK;
   RCC_ClkInitStruct.AHBCLKDivider = RCC_SYSCLK_DIV1;
   RCC_ClkInitStruct.APB1CLKDivider = RCC_HCLK_DIV1;
-  RCC_ClkInitStruct.APB2CLKDivider = RCC_HCLK_DIV1;
+  RCC_ClkInitStruct.APB2CLKDivider = RCC_HCLK_DIV8;
   RCC_ClkInitStruct.APB3CLKDivider = RCC_HCLK_DIV1;
 
-  if (HAL_RCC_ClockConfig(&RCC_ClkInitStruct, FLASH_LATENCY_0) != HAL_OK)
+  if (HAL_RCC_ClockConfig(&RCC_ClkInitStruct, FLASH_LATENCY_4) != HAL_OK)
   {
     Error_Handler();
   }

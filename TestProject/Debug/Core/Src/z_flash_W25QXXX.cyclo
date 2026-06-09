@@ -4,7 +4,7 @@
 ../Core/Src/z_flash_W25QXXX.c:70:6:Flash_Polling_Transmit	1
 ../Core/Src/z_flash_W25QXXX.c:85:6:Flash_Transmit	1
 ../Core/Src/z_flash_W25QXXX.c:106:6:Flash_WaitForWritingComplete	2
-../Core/Src/z_flash_W25QXXX.c:131:6:Flash_Read	3
+../Core/Src/z_flash_W25QXXX.c:131:6:Flash_Read	2
 ../Core/Src/z_flash_W25QXXX.c:170:6:Flash_SimpleWriteAPage	1
 ../Core/Src/z_flash_W25QXXX.c:197:6:Flash_Write	4
 ../Core/Src/z_flash_W25QXXX.c:249:6:Flash_SErase4k	1
