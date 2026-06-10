@@ -227,18 +227,26 @@ int main(void)
       BSP_LED_Toggle(LED_RED);
       /* ..... Perform your action ..... */
 
+
+      uint8_t rBuff[16];
+      SPIF_EraseSector(&spifHandle, 0); // erase page 0~15;
+      SPIF_WritePage(&spifHandle, 0, "0123456789", 10, 0);
+      SPIF_ReadPage(&spifHandle, 0, rBuff, 10, 0);
+      // SPIF_EraseChip(&spifHandle);      
       // uint8_t buffer[8]= {0x01,0x02,0x03,0x04,0x05,0x06,0x07,0x08};
-      // SPIF_WriteSector (&spifHandle, 1 , buffer, 8, 0);
-      // memset(buffer, 0x00, 8);
-      // SPIF_ReadSector (&spifHandle, 1, buffer, 8, 0);
-      // for(uint8_t i = 0; i<8; i++){
-      //   printf("Data read from SPI flash: %02x\n\r", buffer[i]);
-      // }
+      // SPIF_WriteAddress (&spifHandle, (uint32_t)0x00 , buffer, 8);
+      // memset(buffer, 0xFF, 8);
+      // SPIF_ReadAddress (&spifHandle, (uint32_t)0x00, buffer, 8);
+      printf("Data read from SPI flash:\n\r");
+      for(uint8_t i = 0; i<8; i++){
+        printf("%02x ", rBuff[i]);
+      }
+      printf("\n\r");
     }
     /* USER CODE END WHILE */
-
-    /* USER CODE BEGIN 3 */
   }
+  /* USER CODE BEGIN 3 */
+
   /* USER CODE END 3 */
 }
 
