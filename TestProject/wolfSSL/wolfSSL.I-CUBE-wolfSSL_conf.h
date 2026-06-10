@@ -27,14 +27,14 @@
 
 /**
     MiddleWare name : wolfSSL.I-CUBE-wolfSSL.5.9.1
-    MiddleWare fileName : wolfSSL.I-CUBE-wolfSSL_conf.h
+    MiddleWare fileName : ./wolfSSL.I-CUBE-wolfSSL_conf.h
     MiddleWare version :
 */
 /*---------- WOLF_CONF_DEBUG -----------*/
 #define WOLF_CONF_DEBUG      0
 
 /*---------- WOLF_CONF_WOLFCRYPT_ONLY -----------*/
-#define WOLF_CONF_WOLFCRYPT_ONLY      1
+#define WOLF_CONF_WOLFCRYPT_ONLY      0
 
 /*---------- WOLF_CONF_TLS13 -----------*/
 #define WOLF_CONF_TLS13      1
@@ -626,13 +626,13 @@
     #define WOLFSSL_AES_CFB /* Used by TPM parameter encryption */
 #endif
 
-#define WOLFSSL_AES_COUNTER
-#define HAVE_AESCCM
-#define WOLFSSL_AES_XTS
-#define WOLFSSL_AES_DIRECT
-#define HAVE_AES_ECB
-#define HAVE_AES_KEYWRAP
-#define AES_MAX_KEY_SIZE 256
+//#define WOLFSSL_AES_COUNTER
+//#define HAVE_AESCCM
+//#define WOLFSSL_AES_XTS
+//#define WOLFSSL_AES_DIRECT
+//#define HAVE_AES_ECB
+//#define HAVE_AES_KEYWRAP
+//#define AES_MAX_KEY_SIZE 256
 
 /* ChaCha20 / Poly1305 */
 #undef HAVE_CHACHA

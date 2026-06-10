@@ -236,7 +236,7 @@ int main(void)
 
       uint8_t rBuff[16];
       SPIF_EraseSector(&spifHandle, 0); // erase page 0~15;
-      SPIF_WritePage(&spifHandle, 0, "0123456789", 10, 0);
+      SPIF_WritePage(&spifHandle, 0, (uint8_t *)"0123456789", 10, 0);
       SPIF_ReadPage(&spifHandle, 0, rBuff, 10, 0);
       // SPIF_EraseChip(&spifHandle);      
       // uint8_t buffer[8]= {0x01,0x02,0x03,0x04,0x05,0x06,0x07,0x08};
