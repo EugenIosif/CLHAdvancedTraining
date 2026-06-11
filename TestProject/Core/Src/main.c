@@ -44,6 +44,7 @@
 // #include "w25qxx.h"
 #include "spif.h"
 // #include "z_flash_W25QXXX.h"
+// #include "winbondflash.h"
 
 /* USER CODE END Includes */
 
@@ -213,6 +214,10 @@ int main(void)
   SPIF_HandleTypeDef spifHandle;
   spifHandle.Inited = 0;
   GPIO_TypeDef *localGPIO = GPIOD;
+  uint8_t wakeupBuffer[5] = {0xAB, 0x00, 0x00, 0x00, 0x00};
+
+  HAL_SPI_Transmit(&hspi1, &wakeupBuffer[0], 4, 1000);
+  HAL_Delay(5);
   SPIF_Init (&spifHandle, &hspi1, localGPIO, GPIO_PIN_14);
 
   /* USER CODE END BSP */
@@ -234,23 +239,24 @@ int main(void)
       /* ..... Perform your action ..... */
 
 
-      uint8_t rBuff[16];
-      SPIF_EraseSector(&spifHandle, 0); // erase page 0~15;
-      SPIF_WritePage(&spifHandle, 0, (uint8_t *)"0123456789", 10, 0);
-      SPIF_ReadPage(&spifHandle, 0, rBuff, 10, 0);
-      // SPIF_EraseChip(&spifHandle);      
+//      uint8_t rBuff[16];
+//      SPIF_EraseSector(&spifHandle, 0); // erase page 0~15;
+//      SPIF_WritePage(&spifHandle, 0, (uint8_t *)"0123456789", 10, 0);
+//      SPIF_ReadPage(&spifHandle, 0, rBuff, 10, 0);
+      // SPIF_EraseChip(&spifHandle);
       // uint8_t buffer[8]= {0x01,0x02,0x03,0x04,0x05,0x06,0x07,0x08};
       // SPIF_WriteAddress (&spifHandle, (uint32_t)0x00 , buffer, 8);
       // memset(buffer, 0xFF, 8);
       // SPIF_ReadAddress (&spifHandle, (uint32_t)0x00, buffer, 8);
-      printf("Data read from SPI flash:\n\r");
-      for(uint8_t i = 0; i<8; i++){
-        printf("%02x ", rBuff[i]);
-      }
-      printf("\n\r");
+//      printf("Data read from SPI flash:\n\r");
+//      for(uint8_t i = 0; i<8; i++){
+//        printf("%02x ", rBuff[i]);
+//      }
+//      printf("\n\r");
     }
-    /* USER CODE END WHILE */
   }
+    /* USER CODE END WHILE */
+
     /* USER CODE BEGIN 3 */
 
   /* USER CODE END 3 */
@@ -286,7 +292,7 @@ void SystemClock_Config(void)
   RCC_OscInitStruct.PLL.PLLSource = RCC_PLLSOURCE_MSI;
   RCC_OscInitStruct.PLL.PLLMBOOST = RCC_PLLMBOOST_DIV4;
   RCC_OscInitStruct.PLL.PLLM = 3;
-  RCC_OscInitStruct.PLL.PLLN = 10;
+  RCC_OscInitStruct.PLL.PLLN = 8;
   RCC_OscInitStruct.PLL.PLLP = 2;
   RCC_OscInitStruct.PLL.PLLQ = 2;
   RCC_OscInitStruct.PLL.PLLR = 1;
@@ -303,12 +309,12 @@ void SystemClock_Config(void)
                               |RCC_CLOCKTYPE_PCLK1|RCC_CLOCKTYPE_PCLK2
                               |RCC_CLOCKTYPE_PCLK3;
   RCC_ClkInitStruct.SYSCLKSource = RCC_SYSCLKSOURCE_PLLCLK;
-  RCC_ClkInitStruct.AHBCLKDivider = RCC_SYSCLK_DIV1;
+  RCC_ClkInitStruct.AHBCLKDivider = RCC_SYSCLK_DIV2;
   RCC_ClkInitStruct.APB1CLKDivider = RCC_HCLK_DIV1;
-  RCC_ClkInitStruct.APB2CLKDivider = RCC_HCLK_DIV8;
+  RCC_ClkInitStruct.APB2CLKDivider = RCC_HCLK_DIV16;
   RCC_ClkInitStruct.APB3CLKDivider = RCC_HCLK_DIV1;
 
-  if (HAL_RCC_ClockConfig(&RCC_ClkInitStruct, FLASH_LATENCY_4) != HAL_OK)
+  if (HAL_RCC_ClockConfig(&RCC_ClkInitStruct, FLASH_LATENCY_1) != HAL_OK)
   {
     Error_Handler();
   }
