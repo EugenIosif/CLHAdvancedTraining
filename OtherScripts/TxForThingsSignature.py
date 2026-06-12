@@ -245,10 +245,10 @@ def simpleTerminal():
         
 
 if __name__ == "__main__":
-    executeDiffieHellman()
+    # executeDiffieHellman()
     # simpleTerminal()
-    getPublicKey()
-    getPrivateKey()
-    getFunctionPayload()
+    # getPublicKey()
+    # getPrivateKey()
+    # getFunctionPayload()
     decryptPayloadWithAES()
-    decryptPayloadWithRSA()
+    # decryptPayloadWithRSA()
