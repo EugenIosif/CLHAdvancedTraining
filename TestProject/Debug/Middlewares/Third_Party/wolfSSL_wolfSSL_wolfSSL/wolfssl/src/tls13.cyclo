@@ -35,9 +35,9 @@
 ../Middlewares/Third_Party/wolfSSL_wolfSSL_wolfSSL/wolfssl/src/tls13.c:2425:23:WriteSEQTls13	5
 ../Middlewares/Third_Party/wolfSSL_wolfSSL_wolfSSL/wolfssl/src/tls13.c:2463:23:BuildTls13Nonce	2
 ../Middlewares/Third_Party/wolfSSL_wolfSSL_wolfSSL/wolfssl/src/tls13.c:2491:12:ChaCha20Poly1305_Encrypt	6
-../Middlewares/Third_Party/wolfSSL_wolfSSL_wolfSSL/wolfssl/src/tls13.c:2589:12:EncryptTls13	11
+../Middlewares/Third_Party/wolfSSL_wolfSSL_wolfSSL/wolfssl/src/tls13.c:2589:12:EncryptTls13	14
 ../Middlewares/Third_Party/wolfSSL_wolfSSL_wolfSSL/wolfssl/src/tls13.c:2875:12:ChaCha20Poly1305_Decrypt	7
-../Middlewares/Third_Party/wolfSSL_wolfSSL_wolfSSL/wolfssl/src/tls13.c:2987:5:DecryptTls13	10
+../Middlewares/Third_Party/wolfSSL_wolfSSL_wolfSSL/wolfssl/src/tls13.c:2987:5:DecryptTls13	12
 ../Middlewares/Third_Party/wolfSSL_wolfSSL_wolfSSL/wolfssl/src/tls13.c:3247:13:FreeBuildMsg13Args	1
 ../Middlewares/Third_Party/wolfSSL_wolfSSL_wolfSSL/wolfssl/src/tls13.c:3271:5:BuildTls13Message	18
 ../Middlewares/Third_Party/wolfSSL_wolfSSL_wolfSSL/wolfssl/src/tls13.c:3502:5:FindSuiteSSL	5

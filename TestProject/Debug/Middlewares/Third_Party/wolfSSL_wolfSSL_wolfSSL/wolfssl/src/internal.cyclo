@@ -36,7 +36,7 @@
 ../Middlewares/Third_Party/wolfSSL_wolfSSL_wolfSSL/wolfssl/src/internal.c:3444:6:InitSuitesHashSigAlgo	4
 ../Middlewares/Third_Party/wolfSSL_wolfSSL_wolfSSL/wolfssl/src/internal.c:3568:5:AllocateCtxSuites	3
 ../Middlewares/Third_Party/wolfSSL_wolfSSL_wolfSSL/wolfssl/src/internal.c:3583:5:AllocateSuites	5
-../Middlewares/Third_Party/wolfSSL_wolfSSL_wolfSSL/wolfssl/src/internal.c:3600:6:InitSuites	37
+../Middlewares/Third_Party/wolfSSL_wolfSSL_wolfSSL/wolfssl/src/internal.c:3600:6:InitSuites	49
 ../Middlewares/Third_Party/wolfSSL_wolfSSL_wolfSSL/wolfssl/src/internal.c:4684:6:DecodeSigAlg	4
 ../Middlewares/Third_Party/wolfSSL_wolfSSL_wolfSSL/wolfssl/src/internal.c:4791:18:HashAlgoToType	2
 ../Middlewares/Third_Party/wolfSSL_wolfSSL_wolfSSL/wolfssl/src/internal.c:4832:6:InitX509Name	2
@@ -104,7 +104,7 @@
 ../Middlewares/Third_Party/wolfSSL_wolfSSL_wolfSSL/wolfssl/src/internal.c:11979:12:RecordsCanSpanReads	1
 ../Middlewares/Third_Party/wolfSSL_wolfSSL_wolfSSL/wolfssl/src/internal.c:12227:12:GetRecordHeader	22
 ../Middlewares/Third_Party/wolfSSL_wolfSSL_wolfSSL/wolfssl/src/internal.c:12565:12:BuildFinished	3
-../Middlewares/Third_Party/wolfSSL_wolfSSL_wolfSSL/wolfssl/src/internal.c:12594:5:CipherRequires	138
+../Middlewares/Third_Party/wolfSSL_wolfSSL_wolfSSL/wolfssl/src/internal.c:12594:5:CipherRequires	142
 ../Middlewares/Third_Party/wolfSSL_wolfSSL_wolfSSL/wolfssl/src/internal.c:13283:5:MatchDomainName	33
 ../Middlewares/Third_Party/wolfSSL_wolfSSL_wolfSSL/wolfssl/src/internal.c:13405:5:CheckForAltNames	13
 ../Middlewares/Third_Party/wolfSSL_wolfSSL_wolfSSL/wolfssl/src/internal.c:13471:5:CheckHostName	5
@@ -131,9 +131,9 @@
 ../Middlewares/Third_Party/wolfSSL_wolfSSL_wolfSSL/wolfssl/src/internal.c:19818:5:ChachaAEADEncrypt	12
 ../Middlewares/Third_Party/wolfSSL_wolfSSL_wolfSSL/wolfssl/src/internal.c:20013:5:ChachaAEADDecrypt	15
 ../Middlewares/Third_Party/wolfSSL_wolfSSL_wolfSSL/wolfssl/src/internal.c:20247:5:writeAeadAuthData	5
-../Middlewares/Third_Party/wolfSSL_wolfSSL_wolfSSL/wolfssl/src/internal.c:20295:22:EncryptDo	6
+../Middlewares/Third_Party/wolfSSL_wolfSSL_wolfSSL/wolfssl/src/internal.c:20295:22:EncryptDo	7
 ../Middlewares/Third_Party/wolfSSL_wolfSSL_wolfSSL/wolfssl/src/internal.c:20610:22:Encrypt	16
-../Middlewares/Third_Party/wolfSSL_wolfSSL_wolfSSL/wolfssl/src/internal.c:20785:22:DecryptDo	5
+../Middlewares/Third_Party/wolfSSL_wolfSSL_wolfSSL/wolfssl/src/internal.c:20785:22:DecryptDo	6
 ../Middlewares/Third_Party/wolfSSL_wolfSSL_wolfSSL/wolfssl/src/internal.c:21087:12:DecryptTls	17
 ../Middlewares/Third_Party/wolfSSL_wolfSSL_wolfSSL/wolfssl/src/internal.c:21264:22:CipherHasExpIV	4
 ../Middlewares/Third_Party/wolfSSL_wolfSSL_wolfSSL/wolfssl/src/internal.c:21275:12:SanityCheckCipherText	4

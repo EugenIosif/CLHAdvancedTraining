@@ -626,13 +626,13 @@
     #define WOLFSSL_AES_CFB /* Used by TPM parameter encryption */
 #endif
 
-//#define WOLFSSL_AES_COUNTER
-//#define HAVE_AESCCM
-//#define WOLFSSL_AES_XTS
-//#define WOLFSSL_AES_DIRECT
-//#define HAVE_AES_ECB
-//#define HAVE_AES_KEYWRAP
-//#define AES_MAX_KEY_SIZE 256
+#define WOLFSSL_AES_COUNTER
+#define HAVE_AESCCM
+#define WOLFSSL_AES_XTS
+#define WOLFSSL_AES_DIRECT
+#define HAVE_AES_ECB
+#define HAVE_AES_KEYWRAP
+#define AES_MAX_KEY_SIZE 256
 
 /* ChaCha20 / Poly1305 */
 #undef HAVE_CHACHA

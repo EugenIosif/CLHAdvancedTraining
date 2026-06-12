@@ -159,7 +159,7 @@
 ../Middlewares/Third_Party/wolfSSL_wolfSSL_wolfSSL/wolfssl/src/internal.c:25527:5:SendCertificateRequest	56	static
 ../Middlewares/Third_Party/wolfSSL_wolfSSL_wolfSSL/wolfssl/src/internal.c:25802:5:SendCertificateStatus	24	static
 ../Middlewares/Third_Party/wolfSSL_wolfSSL_wolfSSL/wolfssl/src/internal.c:26060:5:IsSCR	16	static
-../Middlewares/Third_Party/wolfSSL_wolfSSL_wolfSSL/wolfssl/src/internal.c:26081:12:CheckTLS13AEADSendLimit	32	static
+../Middlewares/Third_Party/wolfSSL_wolfSSL_wolfSSL/wolfssl/src/internal.c:26081:12:CheckTLS13AEADSendLimit	40	static
 ../Middlewares/Third_Party/wolfSSL_wolfSSL_wolfSSL/wolfssl/src/internal.c:26212:12:ssl_in_handshake	24	static
 ../Middlewares/Third_Party/wolfSSL_wolfSSL_wolfSSL/wolfssl/src/internal.c:26250:5:SendData	88	static
 ../Middlewares/Third_Party/wolfSSL_wolfSSL_wolfSSL/wolfssl/src/internal.c:26651:5:ReceiveData	40	static
