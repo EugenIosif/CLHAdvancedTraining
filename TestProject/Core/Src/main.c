@@ -30,7 +30,7 @@
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
 #include <wolfssl/wolfcrypt/settings.h>
-#include <wolfssl/wolfcrypt/aes.h>
+// #include <wolfssl/wolfcrypt/aes.h>
 #include <wolfssl/wolfcrypt/random.h>
 #include <wolfssl/wolfcrypt/error-crypt.h>
 
@@ -51,7 +51,8 @@
 
 /* Private define ------------------------------------------------------------*/
 /* USER CODE BEGIN PD */
-
+#define WOLFSSL_AES_DIRECT
+#define HAVE_AES_ECB
 /* USER CODE END PD */
 
 /* Private macro -------------------------------------------------------------*/
@@ -84,7 +85,6 @@ uint8_t dummyFunctionDataArray[256] = { 0x00, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06
                                         0xF0, 0xF1, 0xF2, 0xF3, 0xF4, 0xF5, 0xF6, 0xF7, 0xF8, 0xF9, 0xFA, 0xFB, 0xFC, 0xFD, 0xFE, 0xFF
 };
 
-
 /* USER CODE BEGIN PV */
 UART_HandleTypeDef huart1;
 
@@ -108,14 +108,6 @@ static void MX_USART1_UART_Init(void);
   */
 static void MX_USART1_UART_Init(void)
 {
-
-  /* USER CODE BEGIN USART1_Init 0 */
-
-  /* USER CODE END USART1_Init 0 */
-
-  /* USER CODE BEGIN USART1_Init 1 */
-
-  /* USER CODE END USART1_Init 1 */
   huart1.Instance = USART1;
   huart1.Init.BaudRate = 115200;
   huart1.Init.WordLength = UART_WORDLENGTH_8B;
@@ -143,10 +135,6 @@ static void MX_USART1_UART_Init(void)
   {
     Error_Handler();
   }
-  /* USER CODE BEGIN USART1_Init 2 */
-
-  /* USER CODE END USART1_Init 2 */
-
 }
 
 /* USER CODE END 0 */
@@ -232,6 +220,11 @@ int main(void)
   //init the SPIF library, we are using PD14 as CS
   GPIO_TypeDef *localGPIO = GPIOD;
   SPIF_Init (&spifHandle, &hspi1, localGPIO, GPIO_PIN_14);
+
+  //configure and init AES from wolfSSL
+  Aes aes;
+  wc_AesInit(&aes, NULL, INVALID_DEVID);
+  wc_AesSetKey(&aes, AES_key, 16, NULL, AES_ENCRYPTION);
 
   /* USER CODE END BSP */
 
