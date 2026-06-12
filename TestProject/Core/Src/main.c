@@ -225,6 +225,8 @@ int main(void)
   Aes aes;
   wc_AesInit(&aes, NULL, INVALID_DEVID);
   wc_AesSetKey(&aes, AES_key, 16, NULL, AES_ENCRYPTION);
+  uint8_t returnBuffer[16];
+  uint16_t offset = 0x0000;
 
   /* USER CODE END BSP */
 
@@ -244,25 +246,25 @@ int main(void)
       BSP_LED_Toggle(LED_RED);
       /* ..... Perform your action ..... */
       //before the write, we should erase the sector
-      // SPIF_EraseSector(&spifHandle, 0); // erase page 0~15;
+      SPIF_EraseSector(&spifHandle, 0); // erase page 0~15;
       // //prepare the buffer for the writing
-      // uint8_t buffer[8]= {0x01,0x02,0x03,0x04,0x05,0x06,0x07,0x08};
-      // SPIF_WriteAddress (&spifHandle, (uint32_t)0x00 , buffer, 8);
-      // memset(buffer, 0xFF, 8);
-      // SPIF_ReadAddress (&spifHandle, (uint32_t)0x00, buffer, 8);
-      // printf("Data read from SPI flash:\n\r");
-      // for(uint8_t i = 0; i<8; i++){
-      //   printf("%02x ", buffer[i]);
-      // }
-      // printf("\n\r");
-
-      // take the first 16 bytes from dummyFunctionDataArray
-
-      //encrypt with AES using wolfSSL library
-
-      //send trough UART to TxForThings to decrypt
-
-
+      wc_AesEcbEncrypt(&aes, returnBuffer, dummyFunctionDataArray+offset, WC_AES_BLOCK_SIZE);
+      SPIF_WriteAddress (&spifHandle, (uint32_t)0x00 , returnBuffer, 16);
+      // memset(returnBuffer, 0x00, 16);
+      SPIF_ReadAddress (&spifHandle, (uint32_t)0x00, returnBuffer, 16);
+      wc_AesEcbDecrypt(&aes, returnBuffer, returnBuffer, WC_AES_BLOCK_SIZE);
+      printf("Decrypted data read from SPI flash:\n\r{\n\r");
+      for(uint8_t i = 0; i<16; i++){
+        if(i == 7 || i == 15)
+        {
+          printf("0x%02x \n\r", returnBuffer[i]);
+        }
+        else
+        {
+          printf("0x%02x, ", returnBuffer[i]);
+        }
+      }
+      printf("}\n\r");
     }
   }
     /* USER CODE END WHILE */
