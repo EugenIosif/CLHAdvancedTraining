@@ -224,7 +224,6 @@ int main(void)
   //configure and init AES from wolfSSL
   Aes aes;
   wc_AesInit(&aes, NULL, INVALID_DEVID);
-  wc_AesSetKey(&aes, AES_key, 16, NULL, AES_ENCRYPTION);
   uint8_t returnBuffer[16];
   uint16_t offset = 0x0000;
 
@@ -248,10 +247,14 @@ int main(void)
       //before the write, we should erase the sector
       SPIF_EraseSector(&spifHandle, 0); // erase page 0~15;
       // //prepare the buffer for the writing
+      wc_AesSetKey(&aes, AES_key, 16, NULL, AES_ENCRYPTION);
       wc_AesEcbEncrypt(&aes, returnBuffer, dummyFunctionDataArray+offset, WC_AES_BLOCK_SIZE);
+      //  wc_AesEncryptDirect(&aes, returnBuffer, dummyFunctionDataArray+offset);
       SPIF_WriteAddress (&spifHandle, (uint32_t)0x00 , returnBuffer, 16);
-      // memset(returnBuffer, 0x00, 16);
+      memset(returnBuffer, 0xA5, 16);
       SPIF_ReadAddress (&spifHandle, (uint32_t)0x00, returnBuffer, 16);
+
+      wc_AesSetKey(&aes, AES_key, 16, NULL, AES_DECRYPTION);
       wc_AesEcbDecrypt(&aes, returnBuffer, returnBuffer, WC_AES_BLOCK_SIZE);
       printf("Decrypted data read from SPI flash:\n\r{\n\r");
       for(uint8_t i = 0; i<16; i++){
